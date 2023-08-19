@@ -235,6 +235,9 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
             or torch.any(bool_SafeUncertainPt)
             or TwoStageRun
         ) and iter < params["algo"]["n_iter"]:
+            '''
+            haitong: main while loop.
+            '''
             if max_density_sigma <= params["algo"]["eps_density_thresh"]:
                 # change gaol to most uncertain point
                 for agent_key in torch.arange(params["env"]["n_players"])[
@@ -243,6 +246,10 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
                     players[agent_key].update_next_to_go_loc(
                         players[agent_key].max_constraint_sigma_goal
                     )
+                    '''
+                    haitong: next_to_go_loc is the planned_measure_loc. here is set to safe expansion.
+                    If no goose, we will never reach here since the while conditions.
+                    '''
                 # 3) Apply GoOSE for safe exploration till that location
                 # Loops over each player
             if params["agent"]["use_goose"]:
@@ -403,6 +410,9 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
                 or not params["agent"]["use_goose"]
                 or goose_step == params["algo"]["goose_steps"]
             ) and max_density_sigma > params["algo"]["eps_density_thresh"]:
+                '''
+                haitong: start of iteration for our case.
+                '''
                 goose_step = 0
                 iter += 1
                 visu.UpdateIter(iter, -2)
@@ -410,12 +420,19 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
                     # collection of density once goose let us reach
                     if list_IsGoalSafe[agent_key] or not params["agent"]["use_goose"]:
                         reached_pt = players[agent_key].get_next_to_go_loc()
+
                         players[agent_key].update_current_location(reached_pt)
+                        '''
+                        haitong: this is where update current location in our case.
+                        '''
                     else:  # this is executed only if we did not collect any density measurement since long
                         reached_pt = players[agent_key].current_location
                     TrainAndUpdateDensity(
                         reached_pt, agent_key, players, params, env)
                     if params["agent"]["sol_domain"] == "pessi":
+                        '''
+                        never reach here in our case.
+                        '''
                         # 3.1) Train and update after reaching the location
                         TrainAndUpdateConstraint(
                             reached_pt, agent_key, players, params, env

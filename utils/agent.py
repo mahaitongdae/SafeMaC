@@ -343,6 +343,9 @@ class Agent(object):
         self.planned_measure_loc = meas_loc
         if self.agent_param["obs_model"] == "disc_center":
             self.planned_measure_loc = self.planned_disk_center
+            '''
+            haitong: set planned_measured_loc here. check param for obs_model.
+            '''
         # self.planned_disc_boundary = xn_planned_dict["disc"]
         self.max_density_sigma = max_density_sigma
 

@@ -64,6 +64,9 @@ def Update_disc_bound_goal(players, associate_dict, xn_star_mat):
             # Share the associate dict
             players[agent].get_expected_disc_loc(xi_star)
             players[agent].update_disc_boundary(xi_star)
+            '''
+            haitong: disc boundary only used in visualization.
+            '''
 
     covered_nodes = []  # outside of optimistc set agent can't cover
     for key, player in enumerate(players):
