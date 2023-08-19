@@ -2,8 +2,8 @@ env:
   start: -2
   step_size: 0.1
   shape:
-    x :  30
-    y :  30 
+    x :  8
+    y :  8
   n_players : 3
   Cx_lengthscale : 2
   Cx_noise : 0.001
@@ -11,7 +11,7 @@ env:
   Fx_noise : 0.001
   Cx_beta : 1.5 # only for visu
   Fx_beta : 1.5
-  generate: False   # True, False, walls, None: use some fixed save path
+  generate: True   # True, False, walls, None: use some fixed save path
   env_file_name: 'env_data.pkl'
   cov_module: 'Matern'     #'Matern', Sq_exp, 'Poly'
 
@@ -36,7 +36,7 @@ common:
   dim : 2
   constraint : 0.6
   epsilon : 0.25
-  disk_size : 8
+  disk_size : 1
   # disk_size*step_size = disk volume
 
 algo:
@@ -48,3 +48,4 @@ algo:
 experiment:
   name: "exploit" # "Bernoulli", "2stage"
   generate_regret_plot : True
+  folder: "GP"

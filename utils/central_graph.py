@@ -118,7 +118,7 @@ def grid_world_graph(world_size):
     # action 1: go right
     graph.add_edges_from(
         zip(grid_nodes[:, :-1].reshape(-1), grid_nodes[:, 1:].reshape(-1)), action=1
-    )
+    ) # action is actually the edge attributes.
 
     # action 2: go down
     graph.add_edges_from(

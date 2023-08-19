@@ -21,10 +21,10 @@ from utils.visu import Visu
 warnings.filterwarnings("ignore")
 plt.rcParams["figure.figsize"] = [12, 6]
 
-workspace = "SafeMaC"
+workspace = os.path.dirname(os.path.abspath(__file__))
 
 parser = argparse.ArgumentParser(description="A foo that bars")
-parser.add_argument("-param", default="smcc_MacOpt_gorilla")  # params
+parser.add_argument("-param", default="smcc_MacOpt_GP")  # params
 
 parser.add_argument("-env", type=int, default=1)
 parser.add_argument("-i", type=int, default=200)
@@ -150,7 +150,7 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
 
     # compute coverage based on the initial location
     if params["experiment"]["generate_regret_plot"]:
-        if params["agent"]["sol_domain"] == "pessi":
+        if params["agent"]["sol_domain"] == "pessi": # not pessi for macopt and gp
             FxIX_rho_opti = opt.compute_cover_xIX_rho_opti(
                 players, pessi_associate_dict
             )
@@ -176,7 +176,7 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
         list_FxIX_lcb_pessi.append(FxIX_lcb_pessi)
         list_FxIX_rho_Rbar_eps.append(FxIX_rho_Rbar_eps)
         list_FxIX_rho_Rbar0.append(FxIX_rho_Rbar0)
-    max_density_sigma = sum([player.get_max_sigma() for player in players])
+    max_density_sigma = sum([player.get_max_sigma() for player in players]) # sigma is for objective Fx
     list_sum_max_density_sigma.append(max_density_sigma)
     print(iter, max_density_sigma)
 
@@ -474,7 +474,7 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
                         players, "0")
                     FxIX_rho_opti = opt.compute_cover_xIX_rho_opti(
                         players, associate_dict
-                    )
+                    ) # haitong: for no safety considerations, should be same.
                     # TODO: change from true asso to opti asso.
                     # FtildexIX_rho_opti = opt.compute_opt_Fx_at_t(players)
                     FtildexIX_rho_opti = opt.compute_cover_tildexIX_rho_opti(

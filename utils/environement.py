@@ -575,7 +575,7 @@ class GridWorld:
 
     def idxfromloc(self, loc):
         diff = self.grid_V - loc
-        idx = torch.arange(self.grid_V.shape[0])[
+        idx = torch.arange(len(self.grid_V))[
             torch.isclose(diff, torch.zeros(2)).all(dim=1)
         ].item()
         return idx

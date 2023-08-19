@@ -47,10 +47,10 @@ def get_associated_submodular_goal(players, associate_dict):
             for agent in associate_dict[key]
         ]
         union_nodes += [list(players[key].optimistic_graph.nodes)]
-        union_nodes = list(set().union(*union_nodes))
+        union_nodes = list(set().union(*union_nodes)) # set and union are python built-in func.
         union_graph = players[key].base_graph.subgraph(union_nodes)
         for agent in associate_dict[key]:
-            players[agent].update_union_graph(union_graph)
+            players[agent].update_union_graph(union_graph) # updates all union graph to be the same.
         xn_star, acq_density, M_dist, Fx_obj, exploit[key] = players[key].get_next_goal(
             k
         )
@@ -83,6 +83,9 @@ def Update_disc_bound_goal(players, associate_dict, xn_star_mat):
 def submodular_optimization(players, init_safe, params):
     if params["agent"]["use_goose"]:
         associate_dict, pessi_associate_dict, players = form_batches(players, init_safe)
+        '''
+        No need to look here temp
+        '''
     else:
         associate_dict = {}
         associate_dict[0] = []

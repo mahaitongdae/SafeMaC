@@ -140,7 +140,7 @@ class Agent(object):
     def update_disc_boundary(self, loc):
         # disc_nodes = self.get_expected_disc(idxfromloc(self.grid_V, loc))
         G = self.base_graph.subgraph(self.full_disc_nodes).copy()
-        disc_bound_nodes = [x for x in G.nodes() if (G.out_degree(x) <= 3)]
+        disc_bound_nodes = [x for x in G.nodes() if (G.out_degree(x) <= 3)] #todo: haitong: might be some hard code we need to change
         G1 = self.diag_graph.subgraph(disc_bound_nodes).copy()
         self.disc_boundary = list(nx.simple_cycles(G1))
         if len(G1.nodes) == 1:
@@ -456,6 +456,9 @@ class Agent(object):
 
     def get_max_sigma(self):
         observed_posterior = self.Fx_model.posterior(self.grid_V)
+        '''
+        Fx model is a GP with 2d inputs. for all nodes we have node features (Maybe the positions) as input.
+        '''
         lower, upper = observed_posterior.mvn.confidence_region()
         lower, upper = scale_with_beta(lower, upper, self.Fx_beta)
         w = upper - lower
