@@ -1,13 +1,13 @@
-- [] check params:
-  - [] obs_model should be disk_center
-  - [] what is mean value shift
-- [] Codes:
-  - [] add update location (possibly we can use the shortest path from networkx).
-    - [] add regret analysis.
-  - [] handle diagonal edges in base_graph.
-  - [] handle boundary for visu in diag_graph.
-    - [] handle update_boundaries.
-- [] Paper:
-  - [] Submodular optimization cost? 
+- [ ] check params:
+  - [ ] obs_model should be disk_center
+  - [ ] what is mean value shift
+- [ ] Codes:
+  - [ ] add update location (possibly we can use the shortest path from networkx).
+    - [ ] add regret analysis.
+  - [ ] handle diagonal edges in base_graph.
+  - [ ] handle boundary for visu in diag_graph.
+    - [ ] handle update_boundaries.
+- [ ] Paper:
+  - [ ] Submodular optimization cost? 
     - like if the submudular optimization iterates over agents, but not all combinations of queries.
     will this cause additional regret?
