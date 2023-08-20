@@ -231,7 +231,7 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
             visu.UpdateIter(iter, -1)
             for agent_key in range(params["env"]["n_players"]):
                 xi_star = players[agent_key].get_next_to_go_loc()
-                players[agent_key].update_current_location(xi_star)
+                players[agent_key].update_current_location(xi_star) # TODO: do we need update twice? maybe not.
 
             '''
             haitong: start of iteration for our case.
