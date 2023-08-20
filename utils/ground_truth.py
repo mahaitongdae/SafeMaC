@@ -130,8 +130,11 @@ class GroundTruth:
     def __compute_opt_feas_boundary(self):
         for key in self.true_associate_dict:
             G = self.optimal_graphs_eps[key]
+            # self.optimal_feasible_boundary[key] = [
+            #     x for x in G.nodes() if (G.out_degree(x) == 3 or G.out_degree(x) == 2)
+            # ] # TODO: haitong: think about why it's 3 or 2 previously? what if 1? althouhgh it does not matter in our case.
             self.optimal_feasible_boundary[key] = [
-                x for x in G.nodes() if (G.out_degree(x) == 3 or G.out_degree(x) == 2)
+                x for x in G.nodes() if (G.out_degree(x) < 8)
             ]
 
     def compute_optimal_location_by_expansion(self):

@@ -196,6 +196,9 @@ class Visu:
             for edges in single_disc_connections:
                 loc = self.grid_V[edges].reshape(-1, 2)
                 rm.append(ax.plot(loc[:, 0], loc[:, 1], color="tab:brown"))
+                '''
+                hationg: here use the diag_graph generated agent.disc_boundary to plot coverage boundary.
+                '''
                 # for loc in self.opt_goal:
         # ax.savefig("check2.png")
         # ax.close()

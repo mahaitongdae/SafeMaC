@@ -135,6 +135,61 @@ def grid_world_graph(world_size):
         zip(grid_nodes[1:, :].reshape(-1), grid_nodes[:-1, :].reshape(-1)), action=4
     )
 
+    # next: nodes representing coverage but not actions.
+    graph.add_edges_from(
+        zip(grid_nodes[:-1, :-1].reshape(-1), grid_nodes[1:, 1:].reshape(-1)), action=0
+    )
+    graph.add_edges_from(
+        zip(grid_nodes[:-1, 1:].reshape(-1), grid_nodes[1:, :-1].reshape(-1)), action=0
+    )
+    graph.add_edges_from(
+        zip(grid_nodes[1:, :-1].reshape(-1), grid_nodes[:-1, 1:].reshape(-1)), action=0
+    )
+    graph.add_edges_from(
+        zip(grid_nodes[1:, 1:].reshape(-1), grid_nodes[:-1, :-1].reshape(-1)), action=0
+    )
+
+    return graph
+
+def action_grid_world_graph(world_size):
+    """
+    generate a grid world without diagonal edges for calculating the path planning.
+
+    Parameters
+    ----------
+    world_size: tuple
+        The size of the grid world (rows, columns)
+    Returns
+    -------
+    graph: nx.DiGraph()
+        The directed graph representing the grid world.
+    """
+
+    nodes = np.arange(np.prod(world_size))
+    grid_nodes = nodes.reshape(world_size)
+
+    graph = nx.DiGraph()
+
+    # action 1: go right
+    graph.add_edges_from(
+        zip(grid_nodes[:, :-1].reshape(-1), grid_nodes[:, 1:].reshape(-1)), action=1
+    ) # action is actually the edge attributes.
+
+    # action 2: go down
+    graph.add_edges_from(
+        zip(grid_nodes[:-1, :].reshape(-1), grid_nodes[1:, :].reshape(-1)), action=2
+    )
+
+    # action 3: go left
+    graph.add_edges_from(
+        zip(grid_nodes[:, 1:].reshape(-1), grid_nodes[:, :-1].reshape(-1)), action=3
+    )
+
+    # action 4: go up
+    graph.add_edges_from(
+        zip(grid_nodes[1:, :].reshape(-1), grid_nodes[:-1, :].reshape(-1)), action=4
+    )
+
     return graph
 
 
@@ -194,3 +249,7 @@ def diag_grid_world_graph(world_size):
     )
 
     return graph
+
+if __name__ == '__main__':
+    graph = grid_world_graph((8,8))
+    print(graph.out_degree(0))

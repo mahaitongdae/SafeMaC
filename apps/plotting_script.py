@@ -12,10 +12,10 @@ from plotting_utilities.plotting_utilities.utilities import *
 # filename = 'safemac-gp'
 # CUTOFF_SIZE = 550
 
-path = "SafeMaC/pretrained_data/gorilla"
-k = open(path + "/constraint-gorilla.pkl", "rb")
-filename = 'safemac-gorilla'
-CUTOFF_SIZE = 750
+# path = "SafeMaC/pretrained_data/gorilla"
+# k = open(path + "/constraint-gorilla.pkl", "rb")
+# filename = 'safemac-gorilla'
+# CUTOFF_SIZE = 750
 
 # path = "SafeMaC/pretrained_data/obstacles"
 # k = open(path + "/constraint-obstacles.pkl", "rb")
@@ -28,10 +28,10 @@ CUTOFF_SIZE = 750
 # CUTOFF_SIZE = 200
 
 
-# path = "SafeMaC/pretrained_data/GP"
-# k = open(path + "/unconstraint-GP.pkl", "rb")
-# filename = 'macopt-gp'
-# CUTOFF_SIZE = 200
+path = "/home/mht/PycharmProjects/SafeMaC/pretrained_data/GP"
+k = open(path + "/unconstraint-GP.pkl", "rb")
+filename = 'macopt-gp'
+CUTOFF_SIZE = 200
 
 
 def set_label(label):
@@ -92,7 +92,7 @@ def get_regret_of_one_env_one_class_at_each_iter(data_dict):
     opt_val = [data_dict[exp_num]["opt_Fx"] for exp_num in data_dict]
     length = len(opt_val)
     if length != 0:
-        opt_val_mean = np.sum(opt_val) / length
+        opt_val_mean = torch.sum(torch.tensor(opt_val)) / length
         traj_list = []
         opt_traj_list = []
         rbar0_traj_list = []
@@ -314,34 +314,36 @@ for env in all_env_data:
                         stop = 1
                     env_included = env
 set_figure_params()
-f = plt.figure(figsize=(cm2inches(6.0), cm2inches(4.0)))
-ax = f.axes
-for class_ in plot_data[env_included]:  # assumed same class in all
-    class_mean, class_std_noise = plotter_traj(
-        plot_data, class_, "cov_reco_Rbar0")
-    label, color = set_label(class_)
-    plt.fill_between(
-        np.arange(class_mean.shape[0]),
-        y1=class_mean - class_std_noise,
-        y2=class_mean + class_std_noise,
-        alpha=0.3,
-        color=color,
-    )
-    plt.plot(np.arange(class_mean.shape[0]),
-             class_mean, label=label, color=color)
 
-# plt.legend()
-# leg = plt.legend(loc='lower right', bbox_to_anchor=(
-#     1.023, -0.038), prop={"size": 8.5})
-plt.tick_params(axis="x", direction="in")
-plt.tick_params(axis="y", direction="in")
-# plt.xlabel("Samples")
-# plt.ylabel(r'$F(X_T; \rho, \bar{R}_{0}(X_0)$')
-adapt_figure_size_from_axes(ax)
-plt.tight_layout(pad=0)
-plt.grid(axis="y")
-plt.savefig(filename + ".pdf")
-plt.show()
+
+# f = plt.figure(figsize=(cm2inches(6.0), cm2inches(4.0)))
+# ax = f.axes
+# for class_ in plot_data[env_included]:  # assumed same class in all
+#     class_mean, class_std_noise = plotter_traj(
+#         plot_data, class_, "cov_reco_Rbar0")
+#     label, color = set_label(class_)
+#     plt.fill_between(
+#         np.arange(class_mean.shape[0]),
+#         y1=class_mean - class_std_noise,
+#         y2=class_mean + class_std_noise,
+#         alpha=0.3,
+#         color=color,
+#     )
+#     plt.plot(np.arange(class_mean.shape[0]),
+#              class_mean, label=label, color=color)
+#
+# # plt.legend()
+# # leg = plt.legend(loc='lower right', bbox_to_anchor=(
+# #     1.023, -0.038), prop={"size": 8.5})
+# plt.tick_params(axis="x", direction="in")
+# plt.tick_params(axis="y", direction="in")
+# # plt.xlabel("Samples")
+# # plt.ylabel(r'$F(X_T; \rho, \bar{R}_{0}(X_0)$')
+# adapt_figure_size_from_axes(ax)
+# # plt.tight_layout(pad=0)
+# plt.grid(axis="y")
+# plt.savefig(filename + ".pdf")
+# plt.show()
 
 
 sub_opt = 0
@@ -406,7 +408,8 @@ leg = plt.legend(
 plt.tick_params(axis="x", direction="in")
 plt.tick_params(axis="y", direction="in")
 plt.xlabel("Samples")
-plt.ylabel(r"$F(X_T; \rho, V)$")
+# plt.ylabel(r"$F(X_T; \rho, V)$")
+plt.ylabel('F')
 # ax.xaxis.label.set_fontsize(22)
 # ax.yaxis.label.set_fontsize(22)
 # ax.title.set_fontsize(22)
@@ -458,7 +461,7 @@ for class_ in plot_data[env_included]:  # assumed same class in all
 ax.legend(prop={"size": 16})
 ax.set_title("Disk Coverage")
 ax.set_xlabel("iterations")
-ax.set_ylabel(r"$w_t$")
+ax.set_ylabel("w_t")
 ax.xaxis.label.set_fontsize(22)
 ax.yaxis.label.set_fontsize(22)
 ax.title.set_fontsize(22)

@@ -1,6 +1,6 @@
 env:
   start: -2
-  step_size: 0.1
+  step_size: 0.5
   shape:
     x :  8
     y :  8
@@ -26,7 +26,7 @@ agent:
   Fx_beta : 2.0 #1.5
   mean_shift_val : 2
   use_goose: False
-  obs_model : "disc_max_pt"   # disc_center, full_disc, 2 disc_max_pt uncertainity, Bernoulli
+  obs_model : "disc_center"   # disc_center, full_disc, 2 disc_max_pt uncertainity, Bernoulli
   cov_module: 'Matern'     #'Matern', Sq_exp
   recommend: 'UCB'   # 'UCB', 'LCB' 
   Two_stage: False
@@ -34,7 +34,7 @@ agent:
 
 common:
   dim : 2
-  constraint : 0.6
+  constraint : 0.3
   epsilon : 0.25
   disk_size : 1
   # disk_size*step_size = disk volume
@@ -47,5 +47,5 @@ algo:
 
 experiment:
   name: "exploit" # "Bernoulli", "2stage"
-  generate_regret_plot : True
+  generate_regret_plot : False
   folder: "GP"

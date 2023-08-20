@@ -96,6 +96,9 @@ class Agent(object):
                 base_kernel=PiecewisePolynomialKernel()
             )  # ard_num_dims=self.env_dim
 
+        '''
+        haitong: change to diag graph here so we can cover 
+        '''
         self.base_graph = grid_world_graph((self.Nx, self.Ny))
         self.diag_graph = diag_grid_world_graph((self.Nx, self.Ny))
         self.optimistic_graph = grid_world_graph((self.Nx, self.Ny))
@@ -116,13 +119,39 @@ class Agent(object):
         self.record["lower_Fx"] = []
         self.record["upper_Fx"] = []
 
+        # haitong added
+        self.current_location = None
+        self.path=[]
+
     def update_current_location(self, loc):
         """_summary_ Record current location of the agent
 
         Args:
             loc (torch.Tensor 1x1): Location of the agent
+
+        Returns:
+            target_achieved (Bool): if target achieved
         """
         self.current_location = loc
+        # if self.current_location == None:
+        #     self.current_location = loc
+        #     target_achieved = True
+        # else:
+        #     assert len(self.path) > 0
+        #     self.current_location = self.path.pop(0)
+        #     target_achieved = False if len(self.path) > 0 else True
+        #
+        # return target_achieved
+
+
+    def planning(self, loc):
+        assert len(self.path) == 0
+        acq_density = self.acq_density  # TODO: add an acqdensity so that we do not need to calculate every time.
+        path = nx.dijkstra_path(self.base_graph,
+                                idxfromloc(self.grid_V, self.current_location),
+                                idxfromloc(self.grid_V, loc),
+                                lambda u, v, d: acq_density[v])  # TODO: single_node or marginal
+        self.path = path[1:]
 
     def get_recommendation_pt(self):
         if not self.agent_param["Two_stage"]:
@@ -140,7 +169,7 @@ class Agent(object):
     def update_disc_boundary(self, loc):
         # disc_nodes = self.get_expected_disc(idxfromloc(self.grid_V, loc))
         G = self.base_graph.subgraph(self.full_disc_nodes).copy()
-        disc_bound_nodes = [x for x in G.nodes() if (G.out_degree(x) <= 3)] #todo: haitong: might be some hard code we need to change
+        disc_bound_nodes = [x for x in G.nodes() if (G.out_degree(x) <= 8)] # change to 8 for adding the diagonal coverage
         G1 = self.diag_graph.subgraph(disc_bound_nodes).copy()
         self.disc_boundary = list(nx.simple_cycles(G1))
         if len(G1.nodes) == 1:
