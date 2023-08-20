@@ -38,7 +38,7 @@ def form_batches(players, init_safe):
 
 def get_associated_submodular_goal(players, associate_dict):
     xn_star_mat = []
-    print("associate dict", associate_dict)
+    # print("associate dict", associate_dict)
     exploit = {}
     for key in associate_dict:
         k = len(associate_dict[key])  # number of elements in the dict
@@ -82,30 +82,42 @@ def Update_disc_bound_goal(players, associate_dict, xn_star_mat):
             players[agent].set_submodular_goal(xi_star)
             list_meas_loc.append(players[agent].planned_measure_loc)
 
+def Update_goal(players, associate_dict, xn_star_mat):
+
+    list_meas_loc = []
+    for key, xn_star in zip(associate_dict, xn_star_mat):
+        for agent, xi_star in zip(associate_dict[key], xn_star):
+            players[agent].set_others_meas_loc(
+                list_meas_loc
+            )  # to effi. calculate new loc
+            # players[agent].set_submodular_goal(xi_star)
+            players[agent].set_goal(xi_star)
+            list_meas_loc.append(players[agent].planned_measure_loc)
+
 
 def submodular_optimization(players, init_safe, params):
-    if params["agent"]["use_goose"]:
-        associate_dict, pessi_associate_dict, players = form_batches(players, init_safe)
-        '''
-        No need to look here temp
-        '''
-    else:
-        associate_dict = {}
-        associate_dict[0] = []
-        for idx in range(params["env"]["n_players"]):
-            associate_dict[0].append(idx)
-        pessi_associate_dict = associate_dict.copy()
+    # if params["agent"]["use_goose"]:
+    #     associate_dict, pessi_associate_dict, players = form_batches(players, init_safe)
+    #     '''
+    #     No need to look here temp
+    #     '''
+    # else:
+    associate_dict = {}
+    associate_dict[0] = []
+    for idx in range(params["env"]["n_players"]):
+        associate_dict[0].append(idx)
+    pessi_associate_dict = associate_dict.copy()
 
-    if params["agent"]["sol_domain"] == "pessi":
-        xn_star_mat, acq_density, M_dist = get_associated_submodular_goal(
-            players, pessi_associate_dict
-        )
-        Update_disc_bound_goal(players, pessi_associate_dict, xn_star_mat)
-    else:
-        xn_star_mat, acq_density, M_dist = get_associated_submodular_goal(
-            players, associate_dict
-        )
-        Update_disc_bound_goal(players, associate_dict, xn_star_mat)
+    # if params["agent"]["sol_domain"] == "pessi":
+    #     xn_star_mat, acq_density, M_dist = get_associated_submodular_goal(
+    #         players, pessi_associate_dict
+    #     )
+    #     Update_disc_bound_goal(players, pessi_associate_dict, xn_star_mat)
+    # else:
+    xn_star_mat, acq_density, M_dist = get_associated_submodular_goal(
+        players, associate_dict
+    )
+    Update_goal(players, associate_dict, xn_star_mat)
 
     return associate_dict, pessi_associate_dict, acq_density, M_dist
 
@@ -712,6 +724,9 @@ def apply_goose_old(S_pessi, S_opti, V, agent_key, params, Cx_model, xi_star):
     expander_status = True
     return query_pt, expander_status
 
+
+def save_data_plots_simple(**kwargs):
+    pass
 
 def save_data_plots(
     list_FxIX_rho_opti,

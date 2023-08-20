@@ -8,6 +8,8 @@ import warnings
 import matplotlib.pyplot as plt
 import torch
 import yaml
+import numpy as np
+import pandas as pd
 
 from utils.environement import GridWorld
 from utils.ground_truth import GroundTruth
@@ -83,24 +85,21 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
     if not os.path.exists(save_path + str(traj_iter)):
         os.makedirs(save_path + str(traj_iter))
 
-    # lists to record coverage, latter used for regret computations
-    list_FxIX_rho_opti = []
-    list_FtildexIX_rho_opti = []
-    list_FxlIX_lcb_pessi = []
-    list_FxlIX_pessi_rho_Rbar0 = []
-    list_FxIX_rho_Rbar_eps = []
-    list_FxIX_rho_Rbar0 = []
-    list_FxIX_lcb_pessi = []
-    exploit_record = []
+    # use df to store data.
+    data = {'current_coverage'  :[],
+            'sum_max_sigma'     :[],
+            'iter'              :[],
+            }
 
     # Start from some safe initial states
     train = {}
+    train["Cx_X"] = init_safe["loc"]
+    train["Cx_Y"] = env.get_multi_constraint_observation(train["Cx_X"])
     train["Fx_X"] = init_safe["loc"]
     train["Fx_Y"] = env.get_multi_density_observation(train["Fx_X"])
     players = get_players_initialized(train, params, grid_V)
 
     # setup visu
-    safe_boundary = train["Cx_X"]
     fig, ax = plt.subplots()
     visu = Visu(
         f_handle=fig,
@@ -122,8 +121,10 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
     for it, player in enumerate(players):
         player.update_Fx_gp_with_current_data()
         player.update_graph(init_safe["idx"][it])
-        player.save_posterior_normalization_const()
-        player.update_current_location(init_safe["loc"][it])
+        player.save_posterior_normalization_const() # agent.posterior_normalization_const, max of 2beta*sigma.
+        player.initialize_location(init_safe["loc"][it])
+        # xi_star = players[agent_key].get_next_to_go_loc()
+        # player.planning()
 
     associate_dict = {}
     associate_dict[0] = []
@@ -137,74 +138,36 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
 
     writer = get_frame_writer()
     iter = -1
-    list_sum_max_density_sigma = []
-    max_density_sigma = (
-        params["env"]["n_players"] * players[0].posterior_normalization_const
-    )
-    list_sum_max_density_sigma.append(max_density_sigma)
+    # list_sum_max_density_sigma = []
+    # max_density_sigma = (
+    #     params["env"]["n_players"] * players[0].posterior_normalization_const
+    # )
+    # list_sum_max_density_sigma.append(max_density_sigma)
     pt0 = None
     pt1 = None
 
     # compute coverage based on the initial location
     if params["experiment"]["generate_regret_plot"]:
-        FxIX_rho_opti = opt.compute_cover_xIX_rho_opti(
-            players, associate_dict)
-        FtildexIX_rho_opti = opt.compute_cover_tildexIX_rho_opti(
-            players, associate_dict
-        )
-        FxlIX_pessi_rho_Rbar0, FxlIX_lcb_pessi = opt.compute_cover_xlIX_rho_pessi(
-            players, pessi_associate_dict
-        )
-        FxIX_lcb_pessi = opt.compute_cover_xIX_lcb_pessi(players)
-        FxIX_rho_Rbar_eps = opt.compute_cover_xIX_rho_Rbar(players, "eps")
-        FxIX_rho_Rbar0 = opt.compute_cover_xIX_rho_Rbar(players, "0")
-        list_FxIX_rho_opti.append(FxIX_rho_opti)
-        list_FtildexIX_rho_opti.append(FtildexIX_rho_opti)
-        list_FxlIX_lcb_pessi.append(FxlIX_lcb_pessi)
-        list_FxlIX_pessi_rho_Rbar0.append(FxlIX_pessi_rho_Rbar0)
-        list_FxIX_lcb_pessi.append(FxIX_lcb_pessi)
-        list_FxIX_rho_Rbar_eps.append(FxIX_rho_Rbar_eps)
-        list_FxIX_rho_Rbar0.append(FxIX_rho_Rbar0)
+        current_coverage = opt.compute_current_multiple_coverage(players, associate_dict)
+        data.get('current_coverage').append(current_coverage)
+
     max_density_sigma = sum([player.get_max_sigma() for player in players]) # sigma is for objective Fx
-    list_sum_max_density_sigma.append(max_density_sigma)
+    data.get('sum_max_sigma').append(max_density_sigma)
+    data.get('iter').append(0)
     print(iter, max_density_sigma)
 
     # 4) Solve the submodular problem and get a next point to go xi* in pessimistic safe set
     associate_dict, pessi_associate_dict, acq_density, M_dist = submodular_optimization(
         players, init_safe, params
     )
+    '''
+    haitong: in submodular_optimization, goal is set by agent.planned_dist_center & agent.planned_measured_loc.
+                we keep both for compatible with previous visualization code.
+    '''
 
-    # Compute coverage based on the new location
-    if params["experiment"]["generate_regret_plot"]:
-        FxIX_rho_opti = opt.compute_cover_xIX_rho_opti(
-            players, associate_dict)
-        FtildexIX_rho_opti = opt.compute_cover_tildexIX_rho_opti(
-            players, associate_dict
-        )
-        FxlIX_pessi_rho_Rbar0, FxlIX_lcb_pessi = opt.compute_cover_xlIX_rho_pessi(
-            players, pessi_associate_dict
-        )
-        FxIX_lcb_pessi = opt.compute_cover_xIX_lcb_pessi(players)
-        FxIX_rho_Rbar_eps = opt.compute_cover_xIX_rho_Rbar(players, "eps")
-        FxIX_rho_Rbar0 = opt.compute_cover_xIX_rho_Rbar(players, "0")
-        list_FxIX_rho_opti.append(FxIX_rho_opti)
-        list_FtildexIX_rho_opti.append(FtildexIX_rho_opti)
-        list_FxlIX_lcb_pessi.append(FxlIX_lcb_pessi)
-        list_FxlIX_pessi_rho_Rbar0.append(FxlIX_pessi_rho_Rbar0)
-        list_FxIX_lcb_pessi.append(FxIX_lcb_pessi)
-        list_FxIX_rho_Rbar_eps.append(FxIX_rho_Rbar_eps)
-        list_FxIX_rho_Rbar0.append(FxIX_rho_Rbar0)
-    max_density_sigma = sum([player.max_density_sigma for player in players])
-    list_sum_max_density_sigma.append(max_density_sigma)
-    print(iter, max_density_sigma)
+    for player in players:
+        player.planning(acq_density)
 
-    # max_density_sigma = sum(
-    #     [player.max_density_sigma for player in players])
-    # list_sum_max_density_sigma.append(max_density_sigma)
-    # print(iter, max_density_sigma)
-    bool_SafeUncertainPt = torch.ones(params["env"]["n_players"]) < 0
-    goose_step = 0
-    TwoStageRun = False
     with writer.saving(fig, save_path + str(traj_iter) + "/video.mp4", dpi=200):
         visu.UpdateIter(iter, -1)
         for agent_key, player in enumerate(players):
@@ -215,50 +178,41 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
             '''
             haitong: main while loop.
             '''
-            # if max_density_sigma <= params["algo"]["eps_density_thresh"]:
-            #     # change gaol to most uncertain point
-            #     for agent_key in torch.arange(params["env"]["n_players"])[
-            #         bool_SafeUncertainPt
-            #     ].tolist():
-            #         players[agent_key].update_next_to_go_loc(
-            #             players[agent_key].max_constraint_sigma_goal
-            #         )
-            #         '''
-            #         haitong: next_to_go_loc is the planned_measure_loc. here is set to safe expansion.
-            #         If no goose, we will never reach here since the while conditions.
-            #         '''
 
             visu.UpdateIter(iter, -1)
-            for agent_key in range(params["env"]["n_players"]):
-                xi_star = players[agent_key].get_next_to_go_loc()
-                players[agent_key].update_current_location(xi_star) # TODO: do we need update twice? maybe not.
+            target_reached = []
+            current_locations = []
+            for player in players:
+                target_reached.append(player.update_current_location())
+                current_locations.append(players.current_location)
 
-            '''
-            haitong: start of iteration for our case.
-            '''
-            goose_step = 0
+            # observation
+            current_locations = torch.from_numpy(np.array(current_locations))
+            obs = env.get_multi_density_observation(current_locations)
+            players[0].update_Fx_set(current_locations, obs)
+            # haitong: Centralized algo currently so we only add to first agent then sync the FX model.
+
+            # TODO: the doubling trick
+
+            if all(target_reached):
+                Fx_model = players[0].update_Fx()
+                for i in range(1, len(players)):
+                    players[i].Fx_model = Fx_model # sync all Fx model.
+
+                # Greedy algorithm to get path planning target.
+                (
+                    associate_dict,
+                    pessi_associate_dict,
+                    acq_density,
+                    M_dist,
+                ) = submodular_optimization(players, init_safe, params)
+
+                # path planning.
+                for player in players:
+                    player.planning(acq_density)
+
             iter += 1
-            visu.UpdateIter(iter, -2)
-            for agent_key in range(params["env"]["n_players"]):
-                # collection of density once goose let us reach
-                reached_pt = players[agent_key].get_next_to_go_loc()
-                players[agent_key].update_current_location(reached_pt)
-                '''
-                haitong: this is where update current location in our case.
-                '''
-                TrainAndUpdateDensity(
-                    reached_pt, agent_key, players, params, env)
 
-
-            for agent_key, player in enumerate(players):
-                player.update_Fx_gp_with_current_data()
-
-            (
-                associate_dict,
-                pessi_associate_dict,
-                acq_density,
-                M_dist,
-            ) = submodular_optimization(players, init_safe, params)
             for agent_key, player in enumerate(players):
                 pt1 = UpdateCoverageVisu(
                     agent_key,
@@ -274,93 +228,63 @@ for traj_iter in range(params["algo"]["n_CI_samples"]):
             max_density_sigma = sum(
                 [player.max_density_sigma for player in players]
             )
-            list_sum_max_density_sigma.append(max_density_sigma)
+            data.get('sum_max_sigma').append(max_density_sigma)
             print(iter, max_density_sigma)
 
             if params["experiment"]["generate_regret_plot"]:
-                FxIX_rho_Rbar_eps = opt.compute_cover_xIX_rho_Rbar(
-                    players, "eps")
-                FxIX_rho_Rbar0 = opt.compute_cover_xIX_rho_Rbar(
-                    players, "0")
-                FxIX_rho_opti = opt.compute_cover_xIX_rho_opti(
-                    players, associate_dict
-                ) # haitong: for no safety considerations, should be same.
-                # TODO: change from true asso to opti asso.
-                # FtildexIX_rho_opti = opt.compute_opt_Fx_at_t(players)
-                FtildexIX_rho_opti = opt.compute_cover_tildexIX_rho_opti(
-                    players, associate_dict
-                )
-                (
-                    FxlIX_pessi_rho_Rbar0,
-                    FxlIX_lcb_pessi,
-                ) = opt.compute_cover_xlIX_rho_pessi(players, pessi_associate_dict)
-                FxIX_lcb_pessi = opt.compute_cover_xIX_lcb_pessi(players)
-                list_FxIX_rho_opti.append(FxIX_rho_opti)
-                list_FtildexIX_rho_opti.append(FtildexIX_rho_opti)
-                list_FxlIX_lcb_pessi.append(FxlIX_lcb_pessi)
-                list_FxIX_lcb_pessi.append(FxIX_lcb_pessi)
-                list_FxlIX_pessi_rho_Rbar0.append(FxlIX_pessi_rho_Rbar0)
-                list_FxIX_rho_Rbar_eps.append(FxIX_rho_Rbar_eps)
-                list_FxIX_rho_Rbar0.append(FxIX_rho_Rbar0)
+                current_coverage = opt.compute_current_multiple_coverage(players, associate_dict)
+                data.get('current_coverage').append(current_coverage)
+
+            data.get('iter').append(iter)
 
         # Plot the final location after you have converged
         for agent_key, player in enumerate(players):
             player.update_current_location(player.planned_disk_center)
             player.update_next_to_go_loc(player.planned_disk_center)
-            if params["agent"]["use_goose"]:
-                pt0 = UpdateSafeVisu(
-                    agent_key,
-                    players,
-                    visu,
-                    env,
-                    writer,
-                    associate_dict,
-                    pessi_associate_dict,
-                    fig,
-                    pt0,
-                )
             pt1 = UpdateCoverageVisu(
                 agent_key, players, visu, env, acq_density, M_dist, writer, fig, pt1
             )
 
     plt.close()  # close the plt so that next video doesn't get affected
-    nodes = {}
-    nodes["pessi"] = 0
-    nodes["opti"] = 0
-    nodes["diff"] = 0
-    for batch_key in associate_dict:
-        nodes["pessi"] += len(set(players[batch_key].pessimistic_graph.nodes))
-        nodes["opti"] += len(set(players[batch_key].optimistic_graph.nodes))
-        nodes["diff"] += len(
-            set(players[batch_key].optimistic_graph.nodes)
-            - set(players[batch_key].pessimistic_graph.nodes)
-        )
-    print("nodes", nodes)
-    samples = {}
-    samples["constraint"] = players[0].Cx_X_train.shape[0]
-    samples["density"] = players[0].Fx_X_train.shape[0]
-    print("measurements", samples)
-    normalization_factor = {}
-    normalization_factor["Rbar0"] = opt.normalization_Rbar0
-    normalization_factor["Rbar_eps"] = opt.normalization_Rbar_eps
+    # nodes = {}
+    # nodes["pessi"] = 0
+    # nodes["opti"] = 0
+    # nodes["diff"] = 0
+    # for batch_key in associate_dict:
+    #     nodes["pessi"] += len(set(players[batch_key].pessimistic_graph.nodes))
+    #     nodes["opti"] += len(set(players[batch_key].optimistic_graph.nodes))
+    #     nodes["diff"] += len(
+    #         set(players[batch_key].optimistic_graph.nodes)
+    #         - set(players[batch_key].pessimistic_graph.nodes)
+    #     )
+    # print("nodes", nodes)
+    # samples = {}
+    # samples["constraint"] = players[0].Cx_X_train.shape[0]
+    # samples["density"] = players[0].Fx_X_train.shape[0]
+    # print("measurements", samples)
+    # normalization_factor = {}
+    # normalization_factor["Rbar0"] = opt.normalization_Rbar0
+    # normalization_factor["Rbar_eps"] = opt.normalization_Rbar_eps
     if params["experiment"]["generate_regret_plot"]:
-        traj_data_dict[traj_iter] = save_data_plots(
-            list_FxIX_rho_opti,
-            list_FtildexIX_rho_opti,
-            list_FxIX_lcb_pessi,
-            list_FxlIX_lcb_pessi,
-            list_FxlIX_pessi_rho_Rbar0,
-            list_sum_max_density_sigma,
-            list_FxIX_rho_Rbar_eps,
-            list_FxIX_rho_Rbar0,
-            opt.opt_val,
-            exploit_record,
-            nodes,
-            samples,
-            normalization_factor,
-            save_path + str(traj_iter),
-        )
-        traj_data_dict[traj_iter]["bounds"] = players[0].record
+        # traj_data_dict[traj_iter] = save_data_plots(
+        #     list_FxIX_rho_opti,
+        #     list_FtildexIX_rho_opti,
+        #     list_FxIX_lcb_pessi,
+        #     list_FxlIX_lcb_pessi,
+        #     list_FxlIX_pessi_rho_Rbar0,
+        #     list_sum_max_density_sigma,
+        #     list_FxIX_rho_Rbar_eps,
+        #     list_FxIX_rho_Rbar0,
+        #     opt.opt_val,
+        #     exploit_record,
+        #     nodes,
+        #     samples,
+        #     normalization_factor,
+        #     save_path + str(traj_iter),
+        # )
+        # traj_data_dict[traj_iter]["bounds"] = players[0].record
+        df = pd.DataFrame.from_dict(data)
+        df['opt_coverage'] = opt.opt_val
         a_file = open(save_path + "data.pkl", "wb")
         pickle.dump(traj_data_dict, a_file)
         a_file.close()

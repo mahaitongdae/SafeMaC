@@ -22,7 +22,7 @@ from utils.agent_helper import (apply_goose, coverage_oracle, greedy_algorithm,
                                 greedy_algorithm_opti,
                                 greedy_algorithm_opti_cov)
 from utils.central_graph import (CentralGraph, diag_grid_world_graph,
-                                 expansion_operator, grid_world_graph)
+                                 expansion_operator, grid_world_graph, action_grid_world_graph)
 from utils.datatypes import SafeSet
 from utils.helper import idxfromloc
 
@@ -101,12 +101,13 @@ class Agent(object):
         '''
         self.base_graph = grid_world_graph((self.Nx, self.Ny))
         self.diag_graph = diag_grid_world_graph((self.Nx, self.Ny))
+        self.action_graph = action_grid_world_graph((self.Nx, self.Ny))
         self.optimistic_graph = grid_world_graph((self.Nx, self.Ny))
         self.pessimistic_graph = nx.empty_graph(n=0, create_using=nx.DiGraph())
         self.union_graph = grid_world_graph((self.Nx, self.Ny))
         self.centralized_safe_graph = grid_world_graph((self.Nx, self.Ny))
 
-        self.Fx_model = self.__update_Fx()
+        self.Fx_model = self.update_Fx()
         self.Cx_model = self.__update_Cx()
         self.planned_disk_center = self.Fx_X_train
         self.all_safe_nodes = self.base_graph.nodes
@@ -123,7 +124,12 @@ class Agent(object):
         self.current_location = None
         self.path=[]
 
-    def update_current_location(self, loc):
+    def initialize_location(self, loc):
+        self.current_location = loc
+
+    def update_current_location(self,
+                                sync=True,
+                                doubling_trick=True):
         """_summary_ Record current location of the agent
 
         Args:
@@ -132,25 +138,24 @@ class Agent(object):
         Returns:
             target_achieved (Bool): if target achieved
         """
-        self.current_location = loc
-        # if self.current_location == None:
-        #     self.current_location = loc
-        #     target_achieved = True
-        # else:
-        #     assert len(self.path) > 0
-        #     self.current_location = self.path.pop(0)
-        #     target_achieved = False if len(self.path) > 0 else True
-        #
-        # return target_achieved
+        # self.current_location = loc
+
+        if len(self.path) > 0:
+            self.current_location = self.grid_V[self.path.pop(0)]
+        else:
+            pass  # stay
+        target_achieved = False if len(self.path) > 0 else True
+
+        return target_achieved
 
 
-    def planning(self, loc):
+    def planning(self, node_reward):
         assert len(self.path) == 0
-        acq_density = self.acq_density  # TODO: add an acqdensity so that we do not need to calculate every time.
-        path = nx.dijkstra_path(self.base_graph,
+        target = self.planned_disk_center
+        path = nx.dijkstra_path(self.action_graph,
                                 idxfromloc(self.grid_V, self.current_location),
-                                idxfromloc(self.grid_V, loc),
-                                lambda u, v, d: acq_density[v])  # TODO: single_node or marginal
+                                idxfromloc(self.grid_V, target),
+                                lambda u, v, d: node_reward[v])
         self.path = path[1:]
 
     def get_recommendation_pt(self):
@@ -181,7 +186,7 @@ class Agent(object):
 
     def communicate_density(self, X_set, Fx_set):
         for newX, newY in zip(X_set, Fx_set):
-            self.__update_Fx_set(newX, newY)
+            self.update_Fx_set(newX, newY)
 
     def update_Cx_gp(self, newX, newY):
         self.__update_Cx_set(newX, newY)
@@ -193,12 +198,12 @@ class Agent(object):
         return self.Cx_model
 
     def update_Fx_gp(self, newX, newY):
-        self.__update_Fx_set(newX, newY)
-        self.__update_Fx()
+        self.update_Fx_set(newX, newY)
+        self.update_Fx()
         return self.Fx_model
 
     def update_Fx_gp_with_current_data(self):
-        self.__update_Fx()
+        self.update_Fx()
         return self.Fx_model
 
     def __update_Cx_set(self, newX, newY):
@@ -218,14 +223,14 @@ class Agent(object):
         # fit_gpytorch_model(mll)
         return self.Cx_model
 
-    def __update_Fx_set(self, newX, newY):
+    def update_Fx_set(self, newX, newY):
         newX = newX.reshape(-1, self.env_dim)
         newY = newY.reshape(-1, 1)
         self.Fx_X_train = torch.cat(
             [self.Fx_X_train, newX]).reshape(-1, self.env_dim)
         self.Fx_Y_train = torch.cat([self.Fx_Y_train, newY]).reshape(-1, 1)
 
-    def __update_Fx(self):
+    def update_Fx(self):
         Fx_Y_train = self.__mean_corrected(self.Fx_Y_train)
         self.Fx_model = SingleTaskGP(self.Fx_X_train, Fx_Y_train)
         self.Fx_model.covar_module.base_kernel.lengthscale = self.Fx_lengthscale
@@ -377,6 +382,10 @@ class Agent(object):
             '''
         # self.planned_disc_boundary = xn_planned_dict["disc"]
         self.max_density_sigma = max_density_sigma
+
+    def set_goal(self, xi_star):
+        self.planned_measure_loc = xi_star
+        self.planned_disk_center = xi_star
 
     def get_next_to_go_loc(self):
         if not self.agent_param["Two_stage"]:
@@ -738,28 +747,19 @@ class Agent(object):
         # acq_density = self.Fx_model.posterior(
         #     self.grid_V).sample().reshape(-1) + self.mean_shift_val
         # 2.2) Use greedy algorithm to get new index to visit
-        if self.use_goose:
-            if self.agent_param["sol_domain"] == "pessi":
-                idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti(
-                    acq_density.clone(), self.pessimistic_graph, n_soln, self.disk_size
-                )
-            else:
-                idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti(
-                    acq_density.clone(), self.union_graph, n_soln, self.disk_size
-                )
+        if self.agent_param["recommend"] == "Fcov_UCB":  # acq is mean
+            idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti_cov(
+                acq_density.clone(), self.base_graph, n_soln, self.disk_size, mat
+            )
+        elif self.agent_param["recommend"] == "Hallucinate":
+            idx_x_curr, dist_gain, opt_Fx_obj = self.hallucination(
+                acq_density.clone(), n_soln
+            )
         else:
-            if self.agent_param["recommend"] == "Fcov_UCB":  # acq is mean
-                idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti_cov(
-                    acq_density.clone(), self.base_graph, n_soln, self.disk_size, mat
-                )
-            elif self.agent_param["recommend"] == "Hallucinate":
-                idx_x_curr, dist_gain, opt_Fx_obj = self.hallucination(
-                    acq_density.clone(), n_soln
-                )
-            else:
-                idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti(
-                    acq_density.clone(), self.base_graph, n_soln, self.disk_size
-                )
+            idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti(
+                acq_density.clone(), self.base_graph, n_soln, self.disk_size
+            )
+
 
         return self.grid_V[idx_x_curr], acq_density, dist_gain, opt_Fx_obj.detach()
 

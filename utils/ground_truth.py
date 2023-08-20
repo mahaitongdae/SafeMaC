@@ -180,6 +180,34 @@ class GroundTruth:
             total_Fs += Fs
         return total_Fs
 
+    def compute_current_multiple_coverage(self, players, associate_dict):
+
+        base_graph = players[0].base_graph # we only use base graph without safety.
+        sum_Fx_obj = torch.zeros(1)
+        optimistic_graphs = []
+        # for player in players:
+        #     optimistic_graphs.append(player.union_graph)
+        for key in associate_dict:
+            # xn_buddies are the agents which are in same constrain set
+            xn_buddies = [
+                players[agent_idx].current_location
+                for agent_idx in associate_dict[key]
+            ]
+            idx_xn_buddies = []
+            for xn in xn_buddies:
+                idx_xn_buddies.append(idxfromloc(self.grid_V, xn))
+
+            Fx_obj_at_diff_density = self.multi_coverage_oracle(
+                idx_xn_buddies,
+                self.true_density,
+                base_graph,
+                self.params["common"]["disk_size"],
+                key,
+            )
+            sum_Fx_obj += Fx_obj_at_diff_density
+        return sum_Fx_obj.item()
+
+
     def compute_cover_xIX_rho_Rbar(self, players, graph_type):
         sum_Fx_obj = torch.zeros(1)
         for key in self.true_associate_dict:
