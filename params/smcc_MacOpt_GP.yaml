@@ -11,9 +11,9 @@ env:
   Fx_noise : 0.001
   Cx_beta : 1.5 # only for visu
   Fx_beta : 1.5
-  generate: True   # True, False, walls, None: use some fixed save path
+  generate: False   # True, False, walls, None: use some fixed save path
   env_file_name: 'env_data.pkl'
-  cov_module: 'Matern'     #'Matern', Sq_exp, 'Poly'
+  cov_module: 'Sq_exp'     #'Matern', Sq_exp, 'Poly'
 
 agent:
   Lc : 1.5
@@ -27,7 +27,7 @@ agent:
   mean_shift_val : 2
   use_goose: False
   obs_model : "disc_center"   # disc_center, full_disc, 2 disc_max_pt uncertainity, Bernoulli
-  cov_module: 'Matern'     #'Matern', Sq_exp
+  cov_module: 'Sq_exp'     #'Matern', Sq_exp
   recommend: 'UCB'   # 'UCB', 'LCB' 
   Two_stage: False
   sol_domain: "opti"  # keep 2 stage as false
@@ -41,7 +41,7 @@ common:
 
 algo:
   n_CI_samples : 1
-  n_iter: 100
+  n_iter: 500
   eps_density_thresh: 0.5 #0.38 
   goose_steps: 150
   use_doubling_trick: False

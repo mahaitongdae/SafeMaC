@@ -209,8 +209,8 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
-    parser.add_argument("-param", default="smcc_MacOpt_GP_double")  # params
-    parser.add_argument("-env", type=int, default=1)
-    parser.add_argument("-i", type=int, default=200)
+    parser.add_argument("--param", default="smcc_MacOpt_GP_double")  # params
+    parser.add_argument("--env", type=int, default=1)
+    parser.add_argument("--i", type=int, default=200)
     args = parser.parse_args()
     train(args)
