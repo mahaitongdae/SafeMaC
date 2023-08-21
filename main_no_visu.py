@@ -57,6 +57,7 @@ def train(args):
     opt = GroundTruth(env, params)
     opt.compute_optimal_location_by_expansion()
     opt.compute_normalization_factor()
+    opt_coverage = opt.opt_val.item()
 
     # while running on cluster in parallel sometimes a location in not created if asked by multiple processes
     os.makedirs(save_path, exist_ok=True)
@@ -66,6 +67,8 @@ def train(args):
         'current_coverage': [],
         # 'sum_max_sigma'     :[],
         'iter': [],
+        'instant_regret': [],
+        'regret': []
     }
     data.update({'idx_agent{}'.format(i): [] for i in range(params["env"]["n_players"])})
 
@@ -103,10 +106,14 @@ def train(args):
     doubling_target_iter = 0
     pt1 = None
 
+    regret = 0.
     # compute coverage based on the initial location
     current_coverage = opt.compute_current_multiple_coverage(players, associate_dict)
     data.get('current_coverage').append(current_coverage)
     data.get('iter').append(0)
+    data.get('instant_regret').append(opt_coverage - current_coverage)
+    regret += opt_coverage - current_coverage
+    data.get('regret').append(regret)
 
     # max_density_sigma = sum([player.get_max_sigma() for player in players]) # sigma is for objective Fx
     # data.get('sum_max_sigma').append(max_density_sigma)
@@ -187,15 +194,17 @@ def train(args):
 
         current_coverage = opt.compute_current_multiple_coverage(players, associate_dict)
         data.get('current_coverage').append(current_coverage)
-
+        data.get('instant_regret').append(opt_coverage - current_coverage)
+        regret += opt_coverage - current_coverage
+        data.get('regret').append(regret)
         data.get('iter').append(iter)
         print("Iter: {}, coverage value: {:.3f}".format(iter, current_coverage))
 
     df = pd.DataFrame.from_dict(data)
-    df['opt_coverage'] = opt.opt_val.item()
+    df['opt_coverage'] = opt_coverage
     for i, player in enumerate(players):
         df['opt_idx_agent{}'.format(i)] = idxfromloc(player.grid_V, opt.opt_goal['Fx_X'][i])
-    df['regret'] = df['opt_coverage'] - df['current_coverage']
+    # df['regret'] = df['opt_coverage'] - df['current_coverage']
     file = os.path.join(save_path, 'data.csv')
     df.to_csv(file)
 
@@ -209,7 +218,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
-    parser.add_argument("--param", default="smcc_MacOpt_GP_double")  # params
+    parser.add_argument("--param", default="smcc_MacOpt_GP_random_bandit")  # params
     parser.add_argument("--env", type=int, default=1)
     parser.add_argument("--i", type=int, default=200)
     args = parser.parse_args()

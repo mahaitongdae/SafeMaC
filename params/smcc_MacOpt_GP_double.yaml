@@ -6,9 +6,9 @@ env:
     y :  8
   n_players : 3
   Cx_lengthscale : 2
-  Cx_noise : 0.001
+  Cx_noise : 0.01
   Fx_lengthscale : 1
-  Fx_noise : 0.001
+  Fx_noise : 0.01
   Cx_beta : 1.5 # only for visu
   Fx_beta : 1.5
   generate: True   # True, False, walls, None: use some fixed save path
@@ -20,8 +20,8 @@ agent:
   explore_exploit_strategy : 1 # 0: Bernaulli, 1: Directly maximizing coverage obj, 2: 2 stage
   Cx_lengthscale : 2
   Cx_noise : 0.007
-  Fx_lengthscale : 0.3  
-  Fx_noise : 0.001
+  Fx_lengthscale : 0.8
+  Fx_noise : 0.01
   Cx_beta : 1.5 # 1.5
   Fx_beta : 2.0 #1.5
   mean_shift_val : 2
@@ -41,7 +41,7 @@ common:
 
 algo:
   n_CI_samples : 1
-  n_iter: 500
+  n_iter: 200
   eps_density_thresh: 0.5 #0.38 
   goose_steps: 150
   use_doubling_trick: True

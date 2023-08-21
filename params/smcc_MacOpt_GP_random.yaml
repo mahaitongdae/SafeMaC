@@ -49,4 +49,4 @@ algo:
 experiment:
   name: "exploit" # "Bernoulli", "2stage"
   generate_regret_plot : True
-  folder: "GP"
+  folder: "GP_random"
