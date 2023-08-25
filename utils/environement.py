@@ -294,6 +294,30 @@ class GridWorld:
             a_file = open(env_file_path, "wb")
             pickle.dump(self.env_data, a_file)
             a_file.close()
+
+        elif env_params["generate"] == "sparse":
+            fx_loc = np.random.choice(self.Nx * self.Ny, 3, replace=False)
+            self.__Cx = torch.from_numpy(5 * np.random.random(self.Nx * self.Ny))
+            self.__Fx = torch.zeros_like(self.__Cx)
+            for loc in fx_loc:
+                self.__Fx[loc] = torch.tensor(5.)
+            # a, b = self.__Cx, self.__Fx
+            self.__init_safe = {}
+            # init = self.__get_safe_init()
+            init = []
+            init_idx = torch.from_numpy(np.random.randint(0, 63, [3,]))
+            init.append([self.grid_V[idx] for idx in init_idx])
+            init.append(init_idx)
+            self.__init_safe["loc"] = init[0]
+            self.__init_safe["idx"] = init[1]
+            self.env_data["Cx"] = self.__Cx
+            self.env_data["Fx"] = self.__Fx
+            self.env_data["init_safe"] = self.__init_safe
+            self.plot()
+            a_file = open(env_file_path, "wb")
+            pickle.dump(self.env_data, a_file)
+            a_file.close()
+
         else:
             self.__Cx = self.__safety_function(self.V)
             self.__Fx = self.__generate_gp(self.V)

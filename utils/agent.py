@@ -594,6 +594,17 @@ class Agent(object):
             else:
                 return self.grid_V[loc_idx]
 
+    def get_measurement_pt_max(self, loc_idx):
+        """_summary_ NOT IN USE ANYMORE
+
+        Args:
+            loc_idx (int): index representing node number
+
+        Returns:
+            torch.Tensor 2x1: return co-ordinate of measurement location
+        """
+        return self.get_max_uncertain_under_disc(loc_idx)[0]
+
     def get_next_goal(self, n_soln):
         if self.explore_exploit_strategy == 0:  # bernaulli
             xn_star, acq_density, M_dist, Fx_obj, exploit = self.get_goal_bernoulli(

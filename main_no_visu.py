@@ -19,18 +19,27 @@ from utils.initializer import get_players_initialized
 
 
 def train(args):
-
+    env, agent, algo = args.param.split('_')
+    params = {}
+    env = 'env_' + env
+    agent = 'agent_' + agent
+    algo = 'algo_' + algo
     # 1) Load the config file
-    with open(workspace + "/params/" + args.param + ".yaml") as file:
-        params = yaml.load(file, Loader=yaml.FullLoader)
-    print(params)
+    for param in [env, agent, algo]:
+        with open(workspace + "/params/" + param + ".yaml") as file:
+            params.update(yaml.load(file, Loader=yaml.FullLoader))
+        print(params)
+
+    if not args.generate:
+        params["env"].update({"generate": False})
 
     env_load_path = (
         workspace
         + "/experiments/"
         + params["experiment"]["folder"]
-        + "/env_"
-        + str(args.env)
+        + "/"
+        + env + '_'
+        + str(args.env_idx)
         + "/"
     )
     save_path = env_load_path + "/" + args.param + "/"
@@ -71,6 +80,7 @@ def train(args):
         'regret': []
     }
     data.update({'idx_agent{}'.format(i): [] for i in range(params["env"]["n_players"])})
+    data.update({'idx_measure{}'.format(i): [] for i in range(params["env"]["n_players"])})
 
 
 
@@ -88,9 +98,11 @@ def train(args):
         player.update_graph(init_safe["idx"][it])
         player.save_posterior_normalization_const()  # agent.posterior_normalization_const, max of 2beta*sigma.
         player.initialize_location(init_safe["loc"][it])
+        data['idx_agent{}'.format(it)].append(idxfromloc(player.grid_V, player.current_location))
+        data['idx_measure{}'.format(it)].append(idxfromloc(player.grid_V, player.current_location))
+        # haitong: will not do measurement on the initialization. Use current for in-place.
+        # measure_loc = player.get_measurement_pt_max(idxfromloc(player.grid_V, player.current_location))
 
-    for i, player in enumerate(players):
-        data['idx_agent{}'.format(i)].append(idxfromloc(player.grid_V, player.current_location))
 
     associate_dict = {}
     associate_dict[0] = []
@@ -127,9 +139,9 @@ def train(args):
     haitong: in submodular_optimization, goal is set by agent.planned_dist_center & agent.planned_measured_loc.
                 we keep both for compatible with previous visualization code.
     '''
-
+    acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
     for player in players:
-        player.planning(acq_density)
+        player.planning(acq_coverage)
 
     while iter < params["algo"]["n_iter"]:
         '''
@@ -138,18 +150,23 @@ def train(args):
 
         target_reached = []
         current_locations = []
+        measure_locations = []
         for i, player in enumerate(players):
             target_reached.append(player.update_current_location())
             current_locations.append(player.current_location)
+            measure_location = player.get_measurement_pt_max(idxfromloc(player.grid_V, player.current_location))
+            measure_locations.append(measure_location)
             # for i, player in enumerate(players):
             data['idx_agent{}'.format(i)].append(idxfromloc(player.grid_V, player.current_location))
+            data['idx_measure{}'.format(i)].append(idxfromloc(player.grid_V, measure_location))
 
         # observation
         # current_locations = torch.from_numpy(np.array(current_locations))
-        obs = env.get_multi_density_observation(current_locations)
-        players[0].update_Fx_set(torch.stack(current_locations), torch.cat(obs))
+
+        obs = env.get_multi_density_observation(measure_locations)
+        players[0].update_Fx_set(torch.stack(measure_locations), torch.cat(obs))
         # haitong: wierd data dim from previous code.
-        # haitong: Centralized algo currently so we only add to first agent then sync the FX model.
+        # haitong: Centralized algo currently, so we only add to first agent then sync the FX model.
 
 
         if all(target_reached):
@@ -181,6 +198,7 @@ def train(args):
                 path_len = []
                 for player in players:
                     acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
+                    acq_coverage = acq_coverage - acq_coverage.min() # to handle negative edge weights in planning.
                     player.planning(acq_coverage) # todo: we planning according to single node reward or coverage reward.
                     path_len.append(len(player.path))
                 print('max path len {}'.format(max(path_len)))
@@ -209,17 +227,21 @@ def train(args):
     df.to_csv(file)
 
 
-    os.system(
-        "cp " + workspace + "/params/" + args.param +
-        ".yaml " + save_path + "params.yaml"
-    )
+    # os.system(
+    #     "cp " + workspace + "/params/" + args.param +
+    #     ".yaml " + save_path + "params.yaml"
+    # )
+
+    save_file = os.path.join(save_path, 'params.yaml')
+    with open(save_file, 'w') as f:
+        yaml.dump(params, f)
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
-    parser.add_argument("--param", default="smcc_MacOpt_GP_random_bandit")  # params
-    parser.add_argument("--env", type=int, default=1)
-    parser.add_argument("--i", type=int, default=200)
+    parser.add_argument("--param", default="sparse_base_double")  # params
+    parser.add_argument("--env_idx", type=int, default=1)
+    parser.add_argument("--generate", type=bool, default=True)
     args = parser.parse_args()
     train(args)

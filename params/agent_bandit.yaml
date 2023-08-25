@@ -1,20 +1,3 @@
-env:
-  start: -2
-  step_size: 0.5
-  shape:
-    x :  8
-    y :  8
-  n_players : 3
-  Cx_lengthscale : 2
-  Cx_noise : 0.001
-  Fx_lengthscale : 1
-  Fx_noise : 0.01
-  Cx_beta : 1.5 # only for visu
-  Fx_beta : 1.5
-  generate: False   # True, False, walls, None: use some fixed save path
-  env_file_name: 'env_data.pkl'
-  cov_module: 'Sq_exp'     #'Matern', Sq_exp, 'Poly'
-
 agent:
   Lc : 1.5
   explore_exploit_strategy : 1 # 0: Bernaulli, 1: Directly maximizing coverage obj, 2: 2 stage
@@ -39,14 +22,4 @@ common:
   disk_size : 1
   # disk_size*step_size = disk volume
 
-algo:
-  n_CI_samples : 1
-  n_iter: 200
-  eps_density_thresh: 0.5 #0.38 
-  goose_steps: 150
-  use_doubling_trick: False
 
-experiment:
-  name: "exploit" # "Bernoulli", "2stage"
-  generate_regret_plot : True
-  folder: "GP"
