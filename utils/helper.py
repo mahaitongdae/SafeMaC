@@ -386,7 +386,7 @@ def SafelyExplore(
         # 3.1) Train and update after reaching the location
         TrainAndUpdateConstraint(reached_pt, agent_key, players, params, env)
 
-        # 3.2) Update GP's of all the agents, has an effect on visu only
+        # 3.2) Update GP_0.01's of all the agents, has an effect on visu only
         for player, safe in zip(players, init_safe["idx"]):
             player.update_Cx_gp_with_current_data()
 

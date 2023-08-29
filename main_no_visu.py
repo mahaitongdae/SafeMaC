@@ -28,15 +28,18 @@ def train(args):
     for param in [env, agent, algo]:
         with open(workspace + "/params/" + param + ".yaml") as file:
             params.update(yaml.load(file, Loader=yaml.FullLoader))
-        print(params)
+    print(params)
 
     if not args.generate:
         params["env"].update({"generate": False})
 
+    params["env"].update({"Fx_noise" : args.noise_sigma})
+    params["agent"].update({"Fx_noise": args.noise_sigma})
+
     env_load_path = (
         workspace
         + "/experiments/"
-        + params["experiment"]["folder"]
+        + params["experiment"]["folder"] + '_' + str(args.noise_sigma)
         + "/"
         + env + '_'
         + str(args.env_idx)
@@ -143,7 +146,7 @@ def train(args):
     for player in players:
         player.planning(acq_coverage)
 
-    while iter < params["algo"]["n_iter"]:
+    while iter < args.iter:
         '''
         haitong: main while loop.
         '''
@@ -181,7 +184,7 @@ def train(args):
                 print('double until iter {}'.format(doubling_target_iter))
 
             if iter == doubling_target_iter or (not params["algo"]["use_doubling_trick"]):
-                # if finish doubling trick this time, update GP and do planning.
+                # if finish doubling trick this time, update GP_0.01 and do planning.
                 Fx_model = players[0].update_Fx()
                 for i in range(1, len(players)):
                     players[i].Fx_model = Fx_model  # sync all Fx model.
@@ -240,8 +243,10 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
-    parser.add_argument("--param", default="sparse_base_double")  # params
-    parser.add_argument("--env_idx", type=int, default=1)
+    parser.add_argument("--param", default="GP_base_base")  # params
+    parser.add_argument("--env_idx", type=int, default=100)
     parser.add_argument("--generate", type=bool, default=True)
+    parser.add_argument("--noise_sigma", type=float, default=0.01)
+    parser.add_argument("--iter", type=int, default=500)
     args = parser.parse_args()
     train(args)

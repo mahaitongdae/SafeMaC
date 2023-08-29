@@ -7,8 +7,8 @@ from pandas import array
 
 from plotting_utilities.plotting_utilities.utilities import *
 
-# path = "SafeMaC/pretrained_data/GP"
-# k = open(path + "/constraint-GP.pkl", "rb")
+# path = "SafeMaC/pretrained_data/GP_0.01"
+# k = open(path + "/constraint-GP_0.01.pkl", "rb")
 # filename = 'safemac-gp'
 # CUTOFF_SIZE = 550
 
@@ -29,7 +29,7 @@ from plotting_utilities.plotting_utilities.utilities import *
 
 
 path = "/home/mht/PycharmProjects/SafeMaC/pretrained_data/GP"
-k = open(path + "/unconstraint-GP.pkl", "rb")
+k = open(path + "/unconstraint-GP_0.01.pkl", "rb")
 filename = 'macopt-gp'
 CUTOFF_SIZE = 200
 

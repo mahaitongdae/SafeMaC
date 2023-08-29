@@ -18,4 +18,4 @@ env:
 experiment:
   name: "exploit" # "Bernoulli", "2stage"
   generate_regret_plot : True
-  folder: "GP_random"
+  folder: "random"

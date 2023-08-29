@@ -498,7 +498,7 @@ class Agent(object):
     def get_max_sigma(self):
         observed_posterior = self.Fx_model.posterior(self.grid_V)
         '''
-        Fx model is a GP with 2d inputs. for all nodes we have node features (Maybe the positions) as input.
+        Fx model is a GP_0.01 with 2d inputs. for all nodes we have node features (Maybe the positions) as input.
         '''
         lower, upper = observed_posterior.mvn.confidence_region()
         lower, upper = scale_with_beta(lower, upper, self.Fx_beta)

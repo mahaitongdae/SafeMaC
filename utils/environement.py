@@ -276,8 +276,8 @@ class GridWorld:
             a_file.close()
 
         elif env_params["generate"] == "random":
-            self.__Cx = torch.from_numpy(5 * np.random.random(self.Nx * self.Ny))
-            self.__Fx = torch.from_numpy(5 * np.random.random(self.Nx * self.Ny))
+            self.__Cx = torch.from_numpy(3 * np.random.random(self.Nx * self.Ny))
+            self.__Fx = torch.from_numpy(3 * np.random.random(self.Nx * self.Ny))
             # a, b = self.__Cx, self.__Fx
             self.__init_safe = {}
             # init = self.__get_safe_init()

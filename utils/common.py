@@ -3,7 +3,7 @@ from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 import gpytorch
 
-# We will use the simplest form of GP model, exact inference
+# We will use the simplest form of GP_0.01 model, exact inference
 
 
 class ExactGPModel(gpytorch.models.ExactGP):

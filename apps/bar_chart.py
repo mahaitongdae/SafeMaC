@@ -204,9 +204,9 @@ def cm2inches(cm):
 
 
 path = "SafeMaC/pretrained_data/"
-data_dir = ["GP", "obstacles", "gorilla"]
+data_dir = ["GP_0.01", "obstacles", "gorilla"]
 data_name = [
-    "/constraint-GP.pkl",
+    "/constraint-GP_0.01.pkl",
     "/constraint-obstacles.pkl",
     "/constraint-gorilla.pkl",
 ]
@@ -353,7 +353,7 @@ for key in ["samples", "coverage"]:
         ecolor="black",
         capsize=3,
     )
-    plt.xticks(x, ["GP", "Obst.", "Gorilla"])
+    plt.xticks(x, ["GP_0.01", "Obst.", "Gorilla"])
     plt.tick_params(axis="x", direction="in")
     plt.tick_params(axis="y", direction="in")
     adapt_figure_size_from_axes(ax)
