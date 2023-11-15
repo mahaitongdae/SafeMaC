@@ -3,7 +3,7 @@ import seaborn as sns
 import pandas as pd
 import os
 
-envs = ['GP_0.1'] # 'GP_0.01',
+envs = ['GP_0.01','sparse_0.1'] # 'GP_0.01',
 plot_labels = ['regret']
 plot_names = {'bandit': 'bandit', 'base': 'Guassian kernel'}
 env_names = {'GP': 'Normal', 'random': 'Uniform', 'sparse': 'Sparse'}
@@ -12,7 +12,7 @@ root_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(root_dir, 'experiments')
 def plot():
     for plot_key, plot_val in plot_names.items():
-        for env in os.listdir(data_dir): #
+        for env in envs: #
             if not os.path.isdir(os.path.join(data_dir, env)):
                 continue
             print('plotting env {}'.format(env))
@@ -33,7 +33,7 @@ def plot():
             for label in plot_labels:
                 fig, ax = plt.subplots(figsize=[4,3])
                 sns.set_style('darkgrid')
-                sns.set(font_scale=1.)
+                # sns.set(font_scale=1.)
                 sns.lineplot(x='iter', y=label, hue='algorithm', data=total_df)
                 title = env_names[env.split('_')[0]] + ' noise ' + env.split('_')[1] + ' ' + plot_val
                 ax.set_title(title)
@@ -43,6 +43,7 @@ def plot():
                     # plt.yscale('log')
                     plt.gca().invert_yaxis()
                 plt.tight_layout()
+                plt.xlim(0, 500)
                 h, l = ax.get_legend_handles_labels()
                 # ax.get_legend().remove()
                 fig_name = env + '_' + label + '_' + plot_val + '.pdf'

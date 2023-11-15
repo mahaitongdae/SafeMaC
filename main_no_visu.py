@@ -173,17 +173,17 @@ def train(args):
 
 
         if all(target_reached):
-            if params["algo"]["use_doubling_trick"] and iter > doubling_target_iter:
+            # if params["algo"]["use_doubling_trick"] and iter > doubling_target_iter:
 
-                # only recal doubling trick if finished doubling trick last time
-                current_samples = []
-                for i, player in enumerate(players):
-                    current_samples.append(data['idx_agent{}'.format(i)].count(idxfromloc(player.grid_V, player.current_location)))
-                min_samples = min(current_samples)
-                doubling_target_iter = iter + min_samples
-                print('double until iter {}'.format(doubling_target_iter))
+                # # only recal doubling trick if finished doubling trick last time
+                # current_samples = []
+                # for i, player in enumerate(players):
+                #     current_samples.append(data['idx_agent{}'.format(i)].count(idxfromloc(player.grid_V, player.current_location)))
+                # min_samples = min(current_samples)
+                # doubling_target_iter = iter + min_samples
+                # print('double until iter {}'.format(doubling_target_iter))
 
-            if iter == doubling_target_iter or (not params["algo"]["use_doubling_trick"]):
+            if iter >= doubling_target_iter or (not params["algo"]["use_doubling_trick"]):
                 # if finish doubling trick this time, update GP_0.01 and do planning.
                 Fx_model = players[0].update_Fx()
                 for i in range(1, len(players)):
@@ -202,9 +202,19 @@ def train(args):
                 for player in players:
                     acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
                     acq_coverage = acq_coverage - acq_coverage.min() # to handle negative edge weights in planning.
-                    player.planning(acq_coverage) # todo: we planning according to single node reward or coverage reward.
+                    player.planning(acq_coverage)
                     path_len.append(len(player.path))
                 print('max path len {}'.format(max(path_len)))
+
+                # compute target doubling trick iter.
+                planned_target_samples = []
+                for i, player in enumerate(players):
+                    planned_target_samples.append(
+                        data['idx_agent{}'.format(i)].count(idxfromloc(player.grid_V, player.planned_disk_center)))
+                min_samples = min(planned_target_samples)
+                doubling_target_iter = iter + min_samples
+                print('double until iter {}'.format(doubling_target_iter))
+
 
         iter += 1
         # max_density_sigma = sum(
@@ -247,6 +257,6 @@ if __name__ == '__main__':
     parser.add_argument("--env_idx", type=int, default=100)
     parser.add_argument("--generate", type=bool, default=True)
     parser.add_argument("--noise_sigma", type=float, default=0.01)
-    parser.add_argument("--iter", type=int, default=500)
+    parser.add_argument("--iter", type=int, default=1000)
     args = parser.parse_args()
     train(args)
