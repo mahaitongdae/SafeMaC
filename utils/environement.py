@@ -412,8 +412,8 @@ class GridWorld:
         y = self.grid_V.transpose(0, 1).reshape(-1, self.Nx, self.Ny)[1]
         z = self.__Cx.reshape(self.Nx, self.Ny)
         z2 = self.__Fx.reshape(self.Nx, self.Ny)
-        # f, ax = plt.subplots()
-        f, ax = plt.subplots(figsize=(4.0 / 2.54, 4.0 / 2.54))
+        f, ax = plt.subplots()
+        # f, ax = plt.subplots(figsize=(4.0 / 2.54, 4.0 / 2.54))
 
         levels = 20
         CS1 = ax.contour(
@@ -479,10 +479,11 @@ class GridWorld:
         )  # labels along the bottom edge are off
         # plt.show()
         # plt.savefig(self.env_dir + 'env.png')
-        plt.tight_layout(pad=0)
+        # plt.tight_layout(pad=0)
         # plt.grid(axis='y')
-        plt.savefig(self.env_dir + "gorilla-env.pdf")
+        # plt.savefig(self.env_dir + "gorilla-env.pdf")
         # self.plot3D()
+        plt.show()
 
     def goriplotContour(self):
         def fmt(x):

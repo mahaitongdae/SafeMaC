@@ -159,7 +159,6 @@ def train(args):
             current_locations.append(player.current_location)
             measure_location = player.get_measurement_pt_max(idxfromloc(player.grid_V, player.current_location))
             measure_locations.append(measure_location)
-            # for i, player in enumerate(players):
             data['idx_agent{}'.format(i)].append(idxfromloc(player.grid_V, player.current_location))
             data['idx_measure{}'.format(i)].append(idxfromloc(player.grid_V, measure_location))
 
@@ -215,7 +214,6 @@ def train(args):
                 doubling_target_iter = iter + min_samples
                 print('double until iter {}'.format(doubling_target_iter))
 
-
         iter += 1
         # max_density_sigma = sum(
         #     [player.max_density_sigma for player in players]
@@ -253,7 +251,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
-    parser.add_argument("--param", default="GP_base_base")  # params
+    parser.add_argument("--param", default="GPwall_base_base")  # params
     parser.add_argument("--env_idx", type=int, default=100)
     parser.add_argument("--generate", type=bool, default=True)
     parser.add_argument("--noise_sigma", type=float, default=0.01)
