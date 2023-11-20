@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 
 
 WEATHER_DATA_DIR = Path(__file__).parent.joinpath('weather_data')
-ANTARCTIC_LOCATIONS = ['McMurdo', 'Dumont Urville', 'BelgranoII']
+ANTARCTIC_LOCATIONS = ['McMurdo', 'Dumont Urville', 'BelgranoII', 'Boston']
 KGS_LOCATIONS = ['KGS_start', 'KGS_end']
-workspace = "openweathermap/"
+workspace = "/home/mht/PycharmProjects/SafeMaC/openweathermap/"
 
 
 def get_data(location: str,
@@ -154,4 +154,7 @@ def main(location='McMurdo', delta_x=2000, delta_y=2000, n_x=10, n_y=10):
 
 
 if __name__ == '__main__':
-    main(location='KGS_end', n_x=10, n_y=10, delta_x=10000, delta_y=10000)
+    main(location='Boston', n_x=10, n_y=10, delta_x=10000, delta_y=10000)
+    # data = load_data(location='KGS_end', delta_x=10000, delta_y=10000,
+    #                  n_x=10, n_y=10,
+    #                  variables=['temp', 'wind', 'clouds'])
