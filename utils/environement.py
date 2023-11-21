@@ -152,14 +152,14 @@ class GridWorld:
             #        torch.Tensor([-0.2, -0.80]), torch.Tensor([-1.4, -0.80]), torch.Tensor([-0.5, -1.8])]
             if self.Ny != 1:
                 start = [
-                    torch.Tensor([-1.3, 1.0]),
-                    torch.Tensor([0.2, -0.70]),
-                    torch.Tensor([0.3, -1.40]),
+                    torch.Tensor([-1.0, -0.5]),
+                    torch.Tensor([-0.5, 0.5]),
+                    # torch.Tensor([0.3, -1.40]),
                 ]
                 end = [
-                    torch.Tensor([-1.4, -0.80]),
-                    torch.Tensor([-1.4, -0.80]),
-                    torch.Tensor([-0.5, -1.8]),
+                    torch.Tensor([-1.0, -1.0]),
+                    torch.Tensor([-1.0, 0.5]),
+                    # torch.Tensor([-0.5, -1.8]),
                 ]
                 # config 9
                 # start = [torch.Tensor([-1.3, 1.0]),  torch.Tensor([0.4, 1.0]),
