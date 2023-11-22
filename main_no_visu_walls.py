@@ -251,7 +251,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
-    parser.add_argument("--param", default="GPwall_base_base")  # params
+    parser.add_argument("--param", default="GPwall_safe_base")  # params
     parser.add_argument("--env_idx", type=int, default=100)
     parser.add_argument("--generate", type=bool, default=True)
     parser.add_argument("--noise_sigma", type=float, default=0.01)

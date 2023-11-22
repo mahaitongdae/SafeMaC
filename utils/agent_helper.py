@@ -149,8 +149,10 @@ def greedy_algorithm_opti(density, graph, n_soln, disk_size):
                     graph, idx_x_curr[-1], cutoff=2 * disk_size
                 )
             )
+            # QUESTIONS: why two of the disk size?
+            # ANSWERS: because marginal gain of affected locations will be recalculated next step.
 
-            # 2.2.3) Recompute marinal gain, given 'k' agents has already been picked.
+            # 2.2.3) Recompute marginal gain, given 'k' agents has already been picked.
             for node in affected_locs:
                 marginal_gain = coverage_oracle(
                     node, non_covered_density, graph, disk_size

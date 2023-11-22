@@ -112,7 +112,7 @@ class GroundTruth:
             k = len(self.true_associate_dict[key])
             start = time.time()
             idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti(
-                self.true_density.clone(),
+                self.true_density.clone(),  # haitong: input true density for calculating the optimal solution.
                 self.optimal_graphs_eps[key],
                 k,
                 self.params["common"]["disk_size"],
