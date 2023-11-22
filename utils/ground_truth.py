@@ -138,7 +138,7 @@ class GroundTruth:
             ]
 
     def compute_optimal_location_by_expansion(self):
-        self.__load_opt_graphs()
+        self.__load_opt_graphs() # calculate optimal safe graph
         self.__compute_true_asso_dict()
         self.__compute_opt_soln()
         self.__compute_opt_feas_boundary()
@@ -180,9 +180,13 @@ class GroundTruth:
             total_Fs += Fs
         return total_Fs
 
-    def compute_current_multiple_coverage(self, players, associate_dict):
+    def compute_current_multiple_coverage(self, players, associate_dict, safe=False):
 
-        base_graph = players[0].base_graph # we only use base graph without safety.
+        if safe:
+            graph = self.optimal_graphs_eps[0]
+        else:
+            graph = players[0].base_graph
+        # base_graph = players[0].base_graph # we only use base graph without safety.
         sum_Fx_obj = torch.zeros(1)
         optimistic_graphs = []
         # for player in players:
@@ -200,7 +204,7 @@ class GroundTruth:
             Fx_obj_at_diff_density = self.multi_coverage_oracle(
                 idx_xn_buddies,
                 self.true_density,
-                base_graph,
+                graph,
                 self.params["common"]["disk_size"],
                 key,
             )

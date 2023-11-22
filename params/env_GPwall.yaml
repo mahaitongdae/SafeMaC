@@ -11,6 +11,7 @@ env:
   Fx_noise : 0.01
   Cx_beta : 1.5 # only for visu
   Fx_beta : 1.5
+  init_safe_margin: 0.25
   generate: 'walls'   # True, False, walls, None: use some fixed save path
   env_file_name: 'env_data.pkl'
   cov_module: 'Sq_exp'     #'Matern', Sq_exp, 'Poly'

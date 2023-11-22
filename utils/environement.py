@@ -108,6 +108,12 @@ class GridWorld:
                 self.__Cx = self.env_data["Cx"]
                 self.__Fx = self.env_data["Fx"]
                 self.__init_safe = self.env_data["init_safe"]
+            try:
+                self.init_safe_region_locs = self.env_data['init_safe_region']
+                self.init_safe_region_idx = self.env_data['init_safe_idx']
+            except:
+                print('no init safe data!')
+                pass
             print(self.env_data["init_safe"])
             # self.plot() # since model is generated only in generate mode , change to another plot latter
         elif env_params["generate"] == "gorilla":
@@ -137,6 +143,7 @@ class GridWorld:
             a_file.close()
 
         elif env_params["generate"] == "walls":
+            self.env_init_safe_margin = env_params["init_safe_margin"]
             # def dist(a, b): return torch.pow(torch.norm(a - b), 0.6)
             def dist(a, b):
                 return 1 * (1 / (1 + torch.exp(-1.5 * torch.norm(a - b))) - 0.5)
@@ -260,6 +267,7 @@ class GridWorld:
             # idx = torch.LongTensor([95, 830, 440])
             # init = [loc.reshape(-1) for loc in self.grid_V[idx]], idx
             init = self.__get_safe_init()
+            self.init_safe_region_idx, self.init_safe_region_locs = self.cal_init_safe_region()
 
             const_tr = self.__Cx.reshape(self.Nx, self.Ny)
             binary_wall = torch.cat(
@@ -270,6 +278,8 @@ class GridWorld:
             self.env_data["Cx"] = self.__Cx
             self.env_data["Fx"] = self.__Fx
             self.env_data["init_safe"] = self.__init_safe
+            self.env_data['init_safe_region'] = self.init_safe_region_locs
+            self.env_data['init_safe_idx'] = self.init_safe_region_idx
             self.plot()
             a_file = open(env_file_path, "wb")
             pickle.dump(self.env_data, a_file)
@@ -478,12 +488,12 @@ class GridWorld:
             labelbottom=False,
         )  # labels along the bottom edge are off
         # plt.show()
-        # plt.savefig(self.env_dir + 'env.png')
+        plt.savefig(self.env_dir + 'env.pdf')
         # plt.tight_layout(pad=0)
         # plt.grid(axis='y')
         # plt.savefig(self.env_dir + "gorilla-env.pdf")
         # self.plot3D()
-        plt.show()
+        # plt.show()
 
     def goriplotContour(self):
         def fmt(x):
@@ -758,6 +768,11 @@ class GridWorld:
             _type_: _description_
         """
         return self.__init_safe
+
+    def cal_init_safe_region(self):
+        safe = self.__Cx - self.env_init_safe_margin > self.constraint
+        init_safe_idx = np.arange(self.Nx * self.Ny)[safe]
+        return init_safe_idx, self.grid_V[init_safe_idx]
 
 
 def nodes_to_states(nodes, world_shape, step_size):

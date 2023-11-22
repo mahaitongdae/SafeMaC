@@ -110,7 +110,7 @@ class Agent(object):
         self.safe_planning_graph = action_grid_world_graph((self.Nx, self.Ny))
 
         self.Fx_model = self.update_Fx()
-        self.Cx_model = self.__update_Cx()
+        self.Cx_model = self.update_Cx()
         self.planned_disk_center = self.Fx_X_train
         self.all_safe_nodes = self.base_graph.nodes
         self.all_unsafe_nodes = []
@@ -160,6 +160,25 @@ class Agent(object):
                                 lambda u, v, d: node_reward[v])
         self.path = path[1:]
 
+    def safely_planning(self, node_reward):
+        """
+
+        Parameters
+        ----------
+        node_reward dict of node rewards.
+
+        Returns
+        -------
+
+        """
+        assert len(self.path) == 0
+        target = self.planned_disk_center
+        path = nx.dijkstra_path(self.safe_planning_graph,
+                                idxfromloc(self.grid_V, self.current_location),
+                                idxfromloc(self.grid_V, target),
+                                lambda u, v, d: node_reward[v].detach().numpy())
+        self.path = path[1:]
+
     def get_recommendation_pt(self):
         if not self.agent_param["Two_stage"]:
             return self.planned_disk_center
@@ -184,19 +203,19 @@ class Agent(object):
 
     def communicate_constraint(self, X_set, Cx_set):
         for newX, newY in zip(X_set, Cx_set):
-            self.__update_Cx_set(newX, newY)
+            self.update_Cx_set(newX, newY)
 
     def communicate_density(self, X_set, Fx_set):
         for newX, newY in zip(X_set, Fx_set):
             self.update_Fx_set(newX, newY)
 
     def update_Cx_gp(self, newX, newY):
-        self.__update_Cx_set(newX, newY)
-        self.__update_Cx()
+        self.update_Cx_set(newX, newY)
+        self.update_Cx()
         return self.Cx_model
 
     def update_Cx_gp_with_current_data(self):
-        self.__update_Cx()
+        self.update_Cx()
         return self.Cx_model
 
     def update_Fx_gp(self, newX, newY):
@@ -208,14 +227,14 @@ class Agent(object):
         self.update_Fx()
         return self.Fx_model
 
-    def __update_Cx_set(self, newX, newY):
+    def update_Cx_set(self, newX, newY):
         newX = newX.reshape(-1, self.env_dim)
         newY = newY.reshape(-1, 1)
         self.Cx_X_train = torch.cat(
             [self.Cx_X_train, newX]).reshape(-1, self.env_dim)
         self.Cx_Y_train = torch.cat([self.Cx_Y_train, newY]).reshape(-1, 1)
 
-    def __update_Cx(self):
+    def update_Cx(self):
         self.Cx_model = SingleTaskGP(self.Cx_X_train, self.Cx_Y_train)
         # 1.2482120543718338
         self.Cx_model.covar_module.base_kernel.lengthscale = self.Cx_lengthscale
@@ -231,6 +250,13 @@ class Agent(object):
         self.Fx_X_train = torch.cat(
             [self.Fx_X_train, newX]).reshape(-1, self.env_dim)
         self.Fx_Y_train = torch.cat([self.Fx_Y_train, newY]).reshape(-1, 1)
+
+    # def update_Cx_set(self, newX, newY):
+    #     newX = newX.reshape(-1, self.env_dim)
+    #     newY = newY.reshape(-1, 1)
+    #     self.Cx_X_train = torch.cat(
+    #         [self.Cx_X_train, newX]).reshape(-1, self.env_dim)
+    #     self.Cx_Y_train = torch.cat([self.Cx_Y_train, newY]).reshape(-1, 1)
 
     def update_Fx(self):
         Fx_Y_train = self.__mean_corrected(self.Fx_Y_train)
@@ -310,7 +336,7 @@ class Agent(object):
         self.pessimistic_graph = update_graph(
             self.pessimistic_graph, self.base_graph, nodes_to_add=connected_nodes
         )
-        print("Nodes in pesimistic graph:", len(self.pessimistic_graph.nodes))
+        print("Nodes in pessimistic graph:", len(self.pessimistic_graph.nodes)) # , self.pessimistic_graph.nodes
         return True
 
     def update_centralized_unit(
@@ -770,9 +796,9 @@ class Agent(object):
             )
         else:
             idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti(
-                acq_density.clone(), self.base_graph, n_soln, self.disk_size
+                acq_density.clone(), self.safe_graph, n_soln, self.disk_size
             )
-
+            # Haitong notes: change self.base_graph to salf.safe_graph here.
 
         return self.grid_V[idx_x_curr], acq_density, dist_gain, opt_Fx_obj.detach()
 
@@ -926,8 +952,44 @@ class Agent(object):
         data["loc"] = self.current_location
         return data
 
-    def set_initial_safe_graph(self):
-        self.pessimistic_graph
+    def set_initial_safe_graph(self, init_safe_from_env, init_safe_margin, opt):
+        """
+
+        Parameters
+        ----------
+        init_safe_from_env  : init safe information from environment initialization.
+        init_safe_margin    : init safe nodes are set by true constraints - init_safe_slack \geq constraints.
+        opt                 : Ground Truth, we get the true constraints from it.
+
+        Returns
+        -------
+
+        """
+        init_safe_nodes = opt.true_constraint_function > init_safe_margin + opt.params["common"]["constraint"]
+        env_safe_idx = init_safe_from_env["idx"].tolist()
+        safe_nodes_idx = torch.arange(0, opt.true_constraint_function.shape[0])[init_safe_nodes].numpy()
+        safe_nodes_idx = set(safe_nodes_idx) | set(env_safe_idx)
+        self.safe_graph = self.safe_graph.subgraph(safe_nodes_idx)
+        self.safe_planning_graph = self.safe_planning_graph.subgraph(safe_nodes_idx)
+        self.init_safe_nodes_idx = safe_nodes_idx
+
+
+    def update_safe_graph(self):
+        """
+        Combining initial safe graph with pessimistic graph.
+
+
+        Parameters
+        ----------
+        safe_nodes_idx   : safe node indexes.
+
+        Returns
+        -------
+
+        """
+        safe_nodes_idx = set(self.pessimistic_graph.nodes).union(set(self.init_safe_nodes_idx))
+        self.safe_graph = self.base_graph.subgraph(safe_nodes_idx)
+        self.safe_planning_graph = self.action_graph.subgraph(safe_nodes_idx)
 
 
 def scale_with_beta(lower, upper, beta):

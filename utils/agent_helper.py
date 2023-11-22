@@ -119,7 +119,7 @@ def greedy_algorithm_opti(density, graph, n_soln, disk_size):
     node_coverage_gain = {}
 
     # 1) Compute marginal gain at each node (cell) of the domain
-    for node in graph.nodes:
+    for node in graph.nodes: # TODO change to calculate all node marginal gain
         marginal_gain = coverage_oracle(
             node, non_covered_density, graph, disk_size)
         node_coverage_gain[node] = marginal_gain

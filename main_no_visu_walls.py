@@ -98,7 +98,10 @@ def train(args):
 
     for it, player in enumerate(players):
         player.update_Fx_gp_with_current_data()
+        player.update_Cx_gp_with_current_data()
         player.update_graph(init_safe["idx"][it])
+        player.set_initial_safe_graph(init_safe, params["env"]["init_safe_margin"], opt)
+        player.update_safe_graph()
         player.save_posterior_normalization_const()  # agent.posterior_normalization_const, max of 2beta*sigma.
         player.initialize_location(init_safe["loc"][it])
         data['idx_agent{}'.format(it)].append(idxfromloc(player.grid_V, player.current_location))
@@ -123,7 +126,7 @@ def train(args):
 
     regret = 0.
     # compute coverage based on the initial location
-    current_coverage = opt.compute_current_multiple_coverage(players, associate_dict)
+    current_coverage = opt.compute_current_multiple_coverage(players, associate_dict, safe=True)
     data.get('current_coverage').append(current_coverage)
     data.get('iter').append(0)
     data.get('instant_regret').append(opt_coverage - current_coverage)
@@ -142,9 +145,11 @@ def train(args):
     haitong: in submodular_optimization, goal is set by agent.planned_dist_center & agent.planned_measured_loc.
                 we keep both for compatible with previous visualization code.
     '''
-    acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
-    for player in players:
-        player.planning(acq_coverage)
+    # acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
+     # M_dist[0] is a dict with key of nodes and value of rewards
+    for i, player in enumerate(players):
+        acq_coverage = M_dist[i]
+        player.safely_planning(acq_coverage)
 
     while iter < args.iter:
         '''
@@ -170,6 +175,16 @@ def train(args):
         # haitong: wierd data dim from previous code.
         # haitong: Centralized algo currently, so we only add to first agent then sync the FX model.
 
+        # adding observing safety
+        measure_locations_safety = []
+        for i, player in enumerate(players):
+            measure_location_safety = player.get_expected_disc(idxfromloc(player.grid_V, player.current_location))
+            measure_locations_safety.append(player.grid_V[measure_location_safety])
+
+        # if not all(target_reached):
+        measure_locations_safety = torch.unique(torch.cat(measure_locations_safety), dim=0)
+        safety_obs = env.get_multi_constraint_observation(measure_locations_safety)
+        players[0].update_Cx_set(measure_locations_safety, torch.cat(safety_obs))
 
         if all(target_reached):
             # if params["algo"]["use_doubling_trick"] and iter > doubling_target_iter:
@@ -185,8 +200,16 @@ def train(args):
             if iter >= doubling_target_iter or (not params["algo"]["use_doubling_trick"]):
                 # if finish doubling trick this time, update GP_0.01 and do planning.
                 Fx_model = players[0].update_Fx()
+                Cx_model = players[0].update_Cx()
+                players[0].update_graph(init_safe["idx"][0])
+                players[0].update_safe_graph()
+
+
                 for i in range(1, len(players)):
                     players[i].Fx_model = Fx_model  # sync all Fx model.
+                    players[i].Cx_model = Cx_model
+                    players[i].safe_graph = players[0].safe_graph
+                    players[i].safe_planning_graph = players[0].safe_planning_graph
 
                 # Greedy algorithm to get path planning target.
                 (
@@ -199,9 +222,14 @@ def train(args):
                 # path planning.
                 path_len = []
                 for player in players:
-                    acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
-                    acq_coverage = acq_coverage - acq_coverage.min() # to handle negative edge weights in planning.
-                    player.planning(acq_coverage)
+                    # acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
+                    acq_coverage = M_dist[0]
+                    acq_coverage_min = min([acq_coverage_value for acq_coverage_value in acq_coverage.values()])
+                    for key, value in acq_coverage.items():
+                        acq_coverage[key] = value - acq_coverage_min
+                    # acq_coverage = acq_coverage - acq_coverage_min # to handle negative edge weights in planning.
+                    # player.planning(acq_coverage)
+                    player.safely_planning(acq_coverage)
                     path_len.append(len(player.path))
                 print('max path len {}'.format(max(path_len)))
 
@@ -221,13 +249,16 @@ def train(args):
         # data.get('sum_max_sigma').append(max_density_sigma)
         # print(iter, max_density_sigma)
 
-        current_coverage = opt.compute_current_multiple_coverage(players, associate_dict)
+        current_coverage = opt.compute_current_multiple_coverage(players, associate_dict, safe=True)
+        single_step_regret = opt_coverage - current_coverage
         data.get('current_coverage').append(current_coverage)
-        data.get('instant_regret').append(opt_coverage - current_coverage)
-        regret += opt_coverage - current_coverage
+        data.get('instant_regret').append(single_step_regret)
+        regret += single_step_regret
         data.get('regret').append(regret)
         data.get('iter').append(iter)
-        print("Iter: {}, coverage value: {:.3f}".format(iter, current_coverage))
+
+        print("Iter: {}, value: {:.3f}, regret: {:.3f}, cr cv:{}, tar cv: {}".format(
+            iter, current_coverage, single_step_regret, 0 , 0))
 
     df = pd.DataFrame.from_dict(data)
     df['opt_coverage'] = opt_coverage
@@ -253,8 +284,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A foo that bars")
     parser.add_argument("--param", default="GPwall_safe_base")  # params
     parser.add_argument("--env_idx", type=int, default=100)
-    parser.add_argument("--generate", type=bool, default=True)
+    parser.add_argument("--generate", type=bool, default=False)
     parser.add_argument("--noise_sigma", type=float, default=0.01)
-    parser.add_argument("--iter", type=int, default=1000)
+    parser.add_argument("--iter", type=int, default=200)
     args = parser.parse_args()
     train(args)
