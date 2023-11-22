@@ -106,6 +106,8 @@ class Agent(object):
         self.pessimistic_graph = nx.empty_graph(n=0, create_using=nx.DiGraph())
         self.union_graph = grid_world_graph((self.Nx, self.Ny))
         self.centralized_safe_graph = grid_world_graph((self.Nx, self.Ny))
+        self.safe_graph = grid_world_graph((self.Nx, self.Ny))
+        self.safe_planning_graph = action_grid_world_graph((self.Nx, self.Ny))
 
         self.Fx_model = self.update_Fx()
         self.Cx_model = self.__update_Cx()
@@ -924,6 +926,9 @@ class Agent(object):
         data["loc"] = self.current_location
         return data
 
+    def set_initial_safe_graph(self):
+        self.pessimistic_graph
+
 
 def scale_with_beta(lower, upper, beta):
     """_summary_ Scale confidence intervals as per beta
@@ -977,6 +982,8 @@ def update_graph(G, base_G, nodes_to_remove=None, nodes_to_add=None):
             G.remove_edges_from(base_G.edges(n))
 
     return G
+
+
 
 
 if __name__ == "__main__":
