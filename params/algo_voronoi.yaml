@@ -1,0 +1,8 @@
+algo:
+  n_CI_samples : 1
+  n_iter: 200
+  eps_density_thresh: 0.5 #0.38
+  goose_steps: 150
+  use_doubling_trick: False
+  alpha: 0.99
+  beta: 5

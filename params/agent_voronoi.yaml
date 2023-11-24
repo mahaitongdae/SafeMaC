@@ -3,7 +3,7 @@ agent:
   explore_exploit_strategy : 1 # 0: Bernaulli, 1: Directly maximizing coverage obj, 2: 2 stage
   Cx_lengthscale : 2
   Cx_noise : 0.007
-  Fx_lengthscale : 0.01
+  Fx_lengthscale : 0.8
   Fx_noise : 0.01
   Cx_beta : 1.5 # 1.5
   Fx_beta : 2.0 #1.5
@@ -14,11 +14,13 @@ agent:
   recommend: 'UCB'   # 'UCB', 'LCB' 
   Two_stage: False
   sol_domain: "opti"  # keep 2 stage as false
+  alpha: 0.99
+  beta: 5
 
 common:
   dim : 2
   constraint : 0.3
-  epsilon : 0.25
+  epsilon : 0.15
   disk_size : 1
   # disk_size*step_size = disk volume
 

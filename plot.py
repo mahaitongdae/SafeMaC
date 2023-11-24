@@ -3,11 +3,11 @@ import seaborn as sns
 import pandas as pd
 import os
 
-envs = ['GP_0.01','sparse_0.1'] # 'GP_0.01',
+envs = ['GP_0.01', 'GP_0.001'] # 'GP_0.01', # ,'sparse_0.1'
 plot_labels = ['regret']
-plot_names = {'bandit': 'bandit', 'base': 'Guassian kernel'}
+plot_names = {'base': 'correlation kernel'} # 'bandit': 'bandit kernel',
 env_names = {'GP': 'Normal', 'random': 'Uniform', 'sparse': 'Sparse'}
-algo_names = {'double': 'ours', 'base': 'MacOpt + shortest path'}
+algo_names = {'double': 'ours', 'base': 'MacOpt-SP', 'voronoi': 'Voronoi'}
 root_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(root_dir, 'experiments')
 def plot():
@@ -43,10 +43,10 @@ def plot():
                     # plt.yscale('log')
                     plt.gca().invert_yaxis()
                 plt.tight_layout()
-                plt.xlim(0, 500)
+                # plt.xlim(0, 500)
                 h, l = ax.get_legend_handles_labels()
                 # ax.get_legend().remove()
-                fig_name = env + '_' + label + '_' + plot_val + '.pdf'
+                fig_name = env + '_' + label + '_' + plot_val + '_paper.pdf'
                 plt.savefig(os.path.join(data_dir, fig_name))
 
     legfig, legax = plt.subplots(figsize=(7.5, 0.75))

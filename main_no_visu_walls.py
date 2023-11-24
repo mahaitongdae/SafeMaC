@@ -80,7 +80,8 @@ def train(args):
         # 'sum_max_sigma'     :[],
         'iter': [],
         'instant_regret': [],
-        'regret': []
+        'regret': [],
+        'violations': []
     }
     data.update({'idx_agent{}'.format(i): [] for i in range(params["env"]["n_players"])})
     data.update({'idx_measure{}'.format(i): [] for i in range(params["env"]["n_players"])})
@@ -132,6 +133,9 @@ def train(args):
     data.get('instant_regret').append(opt_coverage - current_coverage)
     regret += opt_coverage - current_coverage
     data.get('regret').append(regret)
+
+    current_violations = opt.compute_safety_violations(players)
+    data['violations'].append(current_violations)
 
     # max_density_sigma = sum([player.get_max_sigma() for player in players]) # sigma is for objective Fx
     # data.get('sum_max_sigma').append(max_density_sigma)
@@ -260,6 +264,9 @@ def train(args):
         print("Iter: {}, value: {:.3f}, regret: {:.3f}, cr cv:{}, tar cv: {}".format(
             iter, current_coverage, single_step_regret, 0 , 0))
 
+        current_safety_violations = opt.compute_safety_violations(players)
+        data['violations'].append(current_safety_violations)
+
     df = pd.DataFrame.from_dict(data)
     df['opt_coverage'] = opt_coverage
     for i, player in enumerate(players):
@@ -283,9 +290,9 @@ if __name__ == '__main__':
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
     parser.add_argument("--param", default="GPwall_safe_base")  # params
-    parser.add_argument("--env_idx", type=int, default=100)
-    parser.add_argument("--generate", type=bool, default=False)
+    parser.add_argument("--env_idx", type=int, default=1)
+    parser.add_argument("--generate", type=bool, default=True)
     parser.add_argument("--noise_sigma", type=float, default=0.01)
-    parser.add_argument("--iter", type=int, default=200)
+    parser.add_argument("--iter", type=int, default=10)
     args = parser.parse_args()
     train(args)

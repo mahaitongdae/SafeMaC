@@ -160,6 +160,13 @@ class Agent(object):
                                 lambda u, v, d: node_reward[v])
         self.path = path[1:]
 
+    def shortest_path_planning(self):
+        target = self.planned_disk_center
+        path = nx.shortest_path(self.action_graph, source=idxfromloc(self.grid_V, self.current_location),
+                                target=idxfromloc(self.grid_V, target))
+        self.path = path[1:]
+        # pass
+
     def safely_planning(self, node_reward):
         """
 
@@ -178,6 +185,14 @@ class Agent(object):
                                 idxfromloc(self.grid_V, target),
                                 lambda u, v, d: node_reward[v].detach().numpy())
         self.path = path[1:]
+
+    def random_walk(self):
+        rw_candidates = list(
+            nx.single_source_shortest_path_length(
+                self.action_graph, idxfromloc(self.grid_V, self.current_location), cutoff=self.disk_size
+            )
+        )
+        self.current_location = self.grid_V[np.random.choice(rw_candidates)]
 
     def get_recommendation_pt(self):
         if not self.agent_param["Two_stage"]:
@@ -990,6 +1005,10 @@ class Agent(object):
         safe_nodes_idx = set(self.pessimistic_graph.nodes).union(set(self.init_safe_nodes_idx))
         self.safe_graph = self.base_graph.subgraph(safe_nodes_idx)
         self.safe_planning_graph = self.action_graph.subgraph(safe_nodes_idx)
+
+    def get_maximum_uncertainty_whole_graph(self):
+        lower_Fx, upper_Fx = self.Fx_model.posterior(self.grid_V).mvn.confidence_region()
+        return (upper_Fx - lower_Fx).max().detach().numpy()
 
 
 def scale_with_beta(lower, upper, beta):

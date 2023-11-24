@@ -426,6 +426,14 @@ class GroundTruth:
 
         return idx_max_gain, max_gain
 
+    def compute_safety_violations(self, players):
+        violations = 0
+        for i, player in enumerate(players):
+            safe_nodes = self.optimal_graphs_eps[i].nodes
+            if idxfromloc(player.grid_V, player.current_location) not in safe_nodes:
+                violations += 1
+        return violations
+
     # def compute_optimal_location(self.true_density, self.true_constraint_function, self.init_safe, params, V):
     #     # 1) Computation of optimal solution
     #     opt_goal = {}

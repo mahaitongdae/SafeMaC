@@ -7,7 +7,7 @@ env:
   n_players : 3
   Cx_lengthscale : 2
   Cx_noise : 0.01
-  Fx_lengthscale : 0.7
+  Fx_lengthscale : 0.01
   Fx_noise : 0.01
   Cx_beta : 1.5 # only for visu
   Fx_beta : 1.5
