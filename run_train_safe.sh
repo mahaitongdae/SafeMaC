@@ -1,5 +1,5 @@
 for noise in 0.1; do 
-  for param in GPwall_safe_base
+  for param in GPwall_safeb_base
   do
     for i in {1..10}
     do

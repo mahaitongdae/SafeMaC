@@ -2,14 +2,20 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import os
-
-envs = ['GP_0.01', 'GP_0.001'] # 'GP_0.01', # ,'sparse_0.1'
+plt.rc('text', usetex=True)
+envs = ['GP_0.01','sparse_0.01','random_0.01'] # 'GP_0.01', # ,'sparse_0.1' # 'GP_0.001' 'GP_0.01',
 plot_labels = ['regret']
-plot_names = {'base': 'correlation kernel'} # 'bandit': 'bandit kernel',
-env_names = {'GP': 'Normal', 'random': 'Uniform', 'sparse': 'Sparse'}
+plot_names = {'bandit': 'length scale 0.01', 'base': 'length scale 0.5'} #  'base': 'correlation kernel'
+env_names = {'GP': r'$w_{\rm Normal}$', 'random': r'$w_{\rm Uniform}$', 'sparse': r'$w_{\rm Sparse}$'}
 algo_names = {'double': 'ours', 'base': 'MacOpt-SP', 'voronoi': 'Voronoi'}
-root_dir = os.path.dirname(os.path.abspath(__file__))
-data_dir = os.path.join(root_dir, 'experiments')
+ylim = {'GP': [0, 1.7],
+        'random': [0, 2.6],
+        'sparse': [0, 1.3]}
+# root_dir = os.path.dirname(os.path.abspath(__file__))
+# data_dir = os.path.join(root_dir, 'experiments')
+data_dir = '/home/mht/PycharmProjects/safemac_data/experiments'
+sns.set_style('darkgrid',)
+sns.set(font_scale=1.5)
 def plot():
     for plot_key, plot_val in plot_names.items():
         for env in envs: #
@@ -22,30 +28,36 @@ def plot():
                 if not os.path.isdir(os.path.join(env_dir, sub_env)):
                     continue
                 for algo in sorted(os.listdir(os.path.join(env_dir, sub_env))):
-                    try:
-                        if algo.split('_')[1] == plot_key:
-                            df = pd.read_csv(os.path.join(os.path.join(os.path.join(env_dir, sub_env), algo), 'data.csv'))
-                            df['algorithm'] = algo_names[algo.split('_')[-1]]
-                            dfs.append(df)
-                    except:
-                        pass
+                    # try:
+                    if not os.path.isdir(os.path.join(os.path.join(env_dir, sub_env), algo)):
+                        continue
+                    if os.listdir(os.path.join(os.path.join(env_dir, sub_env), algo)) == []:
+                        continue
+                    if algo.split('_')[1] == plot_key:
+                        df = pd.read_csv(os.path.join(os.path.join(os.path.join(env_dir, sub_env), algo), 'data.csv'))
+                        df['algorithm'] = algo_names[algo.split('_')[-1]]
+                        df['regret'] = df['regret'] / 1000.
+                        dfs.append(df)
+                    # except:
+                    #     pass
             total_df = pd.concat(dfs, ignore_index=True)
             for label in plot_labels:
-                fig, ax = plt.subplots(figsize=[4,3])
+                fig, ax = plt.subplots(figsize=[4, 3])
                 sns.set_style('darkgrid')
                 # sns.set(font_scale=1.)
-                sns.lineplot(x='iter', y=label, hue='algorithm', data=total_df)
-                title = env_names[env.split('_')[0]] + ' noise ' + env.split('_')[1] + ' ' + plot_val
+                sns.lineplot(x='iter', y=label, hue='algorithm', data=total_df, ax=ax)
+                title = env_names[env.split('_')[0]] + ', ' + plot_val
                 ax.set_title(title)
-                ax.set_xlabel('iteration')
-                # ax.set_ylabel('Regret')
+                ax.set_xlabel('Samples')
+                ax.set_ylabel(r'Regret ($\times 10^3$)')
                 if label == 'instant_regret':
                     # plt.yscale('log')
                     plt.gca().invert_yaxis()
-                plt.tight_layout()
+                ax.set_ylim(ylim.get(env.split('_')[0]))
+                plt.tight_layout(pad=0.3)
                 # plt.xlim(0, 500)
                 h, l = ax.get_legend_handles_labels()
-                # ax.get_legend().remove()
+                ax.get_legend().remove()
                 fig_name = env + '_' + label + '_' + plot_val + '_paper.pdf'
                 plt.savefig(os.path.join(data_dir, fig_name))
 

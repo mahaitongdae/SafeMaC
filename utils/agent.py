@@ -180,6 +180,25 @@ class Agent(object):
         """
         assert len(self.path) == 0
         target = self.planned_disk_center
+        def rescale(tensor):
+            tensor.detach_()
+            min_val = tensor.min()
+            max_val = tensor.max()
+            # Scale the tensor to [0, 1]
+            return (tensor - min_val) / (max_val - min_val)
+
+        if self.agent_param["boundary_explore"]:
+            safety_value = self.Cx_model.posterior(self.grid_V).mvn.confidence_region()[1]
+            # rescale according to safe planning graph
+            scale = 1 / (safety_value[list(node_reward.keys())].max() - safety_value[list(node_reward.keys())].min())
+            rescaled_safety_value = scale * (safety_value - safety_value[list(node_reward.keys())].min())
+
+            all_node_rewards = torch.hstack(list(node_reward.values())).detach()
+            scale = 1 / (all_node_rewards.max() - all_node_rewards.min())
+            for key, val in node_reward.items():
+                weighted_node_rewards = 0.5 * scale * (val - all_node_rewards.min()) + 0.5 * rescaled_safety_value[key]
+                node_reward.update({key: weighted_node_rewards})
+
         path = nx.dijkstra_path(self.safe_planning_graph,
                                 idxfromloc(self.grid_V, self.current_location),
                                 idxfromloc(self.grid_V, target),
