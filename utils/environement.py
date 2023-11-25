@@ -837,11 +837,11 @@ def dist(a, b):
 
 
 if __name__ == "__main__":
-    workspace = "SafeMaC"
-    with open(workspace + "/params/smcc_SafeMac_LA3D40gorilla.yaml") as file:
+    workspace = "/home/mht/PycharmProjects/SafeMaC"
+    with open(workspace + "/params/env_gorilla.yaml") as file:
         params = yaml.load(file, Loader=yaml.FullLoader)
     if params["env"]["generate"]:
-        for i in range(0, 10):
+        for i in range(0, 1):
             # save_path = workspace + "/experiments/" + datetime.today().strftime('%d-%m-%y') + \
             #     datetime.today().strftime(
             #         '-%A')[0:4] + "/environments/env_" + str(i) + "/"

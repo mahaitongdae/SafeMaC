@@ -3,13 +3,14 @@ import seaborn as sns
 import pandas as pd
 import os
 
-envs = ['GP_0.01', 'GP_0.001'] # 'GP_0.01', # ,'sparse_0.1'
+envs = ['GP_0.01','sparse_0.01', 'random_0.01'] # 'GP_0.01', # ,'sparse_0.1' # 'GP_0.001' 'GP_0.01',
 plot_labels = ['regret']
-plot_names = {'base': 'correlation kernel'} # 'bandit': 'bandit kernel',
+plot_names = {'bandit': 'bandit kernel', 'base': 'correlation kernel'} #  'base': 'correlation kernel'
 env_names = {'GP': 'Normal', 'random': 'Uniform', 'sparse': 'Sparse'}
 algo_names = {'double': 'ours', 'base': 'MacOpt-SP', 'voronoi': 'Voronoi'}
-root_dir = os.path.dirname(os.path.abspath(__file__))
-data_dir = os.path.join(root_dir, 'experiments')
+# root_dir = os.path.dirname(os.path.abspath(__file__))
+# data_dir = os.path.join(root_dir, 'experiments')
+data_dir = '/home/mht/PycharmProjects/safemac_data/experiments'
 def plot():
     for plot_key, plot_val in plot_names.items():
         for env in envs: #
@@ -22,13 +23,17 @@ def plot():
                 if not os.path.isdir(os.path.join(env_dir, sub_env)):
                     continue
                 for algo in sorted(os.listdir(os.path.join(env_dir, sub_env))):
-                    try:
-                        if algo.split('_')[1] == plot_key:
-                            df = pd.read_csv(os.path.join(os.path.join(os.path.join(env_dir, sub_env), algo), 'data.csv'))
-                            df['algorithm'] = algo_names[algo.split('_')[-1]]
-                            dfs.append(df)
-                    except:
-                        pass
+                    # try:
+                    if not os.path.isdir(os.path.join(os.path.join(env_dir, sub_env), algo)):
+                        continue
+                    if os.listdir(os.path.join(os.path.join(env_dir, sub_env), algo)) == []:
+                        continue
+                    if algo.split('_')[1] == plot_key:
+                        df = pd.read_csv(os.path.join(os.path.join(os.path.join(env_dir, sub_env), algo), 'data.csv'))
+                        df['algorithm'] = algo_names[algo.split('_')[-1]]
+                        dfs.append(df)
+                    # except:
+                    #     pass
             total_df = pd.concat(dfs, ignore_index=True)
             for label in plot_labels:
                 fig, ax = plt.subplots(figsize=[4,3])

@@ -77,7 +77,6 @@ def train(args):
     # use df to store data.
     data = {
         'current_coverage': [],
-        # 'sum_max_sigma'     :[],
         'iter': [],
         'instant_regret': [],
         'regret': []
@@ -103,8 +102,6 @@ def train(args):
         player.initialize_location(init_safe["loc"][it])
         data['idx_agent{}'.format(it)].append(idxfromloc(player.grid_V, player.current_location))
         data['idx_measure{}'.format(it)].append(idxfromloc(player.grid_V, player.current_location))
-        # haitong: will not do measurement on the initialization. Use current for in-place.
-        # measure_loc = player.get_measurement_pt_max(idxfromloc(player.grid_V, player.current_location))
 
 
     associate_dict = {}
