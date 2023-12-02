@@ -4,6 +4,8 @@ import errno
 import os
 import pickle
 import warnings
+from multiprocessing import Process, Lock, Array, Manager
+import time
 
 import matplotlib.pyplot as plt
 import torch
@@ -11,14 +13,17 @@ import yaml
 import numpy as np
 import pandas as pd
 
+import sys
+sys.path.append(os.path.dirname(__file__))
+
 from utils.environement import GridWorld
 from utils.ground_truth import GroundTruth
 from utils.helper import submodular_optimization, idxfromloc
 from utils.initializer import get_players_initialized
+from utils.visualizer_simu import Visulizer
 
-
-
-def train(args):
+def train(args, shared_locs, lock):
+    time.sleep(3) # sleep to wait visulizer
     env, agent, algo = args.param.split('_')
     params = {}
     env = 'env_' + env
@@ -116,7 +121,6 @@ def train(args):
 
     iter = 0
     doubling_target_iter = 0
-    pt1 = None
 
     regret = 0.
     # compute coverage based on the initial location
@@ -141,18 +145,25 @@ def train(args):
     '''
     acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
     for player in players:
-        player.planning(acq_coverage)
+        # player.planning(acq_coverage)
+        player.shortest_path_planning()
 
     while iter < args.iter:
         '''
         haitong: main while loop.
         '''
+        time.sleep(1)
 
         target_reached = []
         current_locations = []
         measure_locations = []
         for i, player in enumerate(players):
             target_reached.append(player.update_current_location())
+
+            # update 
+            with lock:
+                shared_locs[i] = idxfromloc(player.grid_V, player.current_location)
+
             current_locations.append(player.current_location)
             measure_location = player.get_measurement_pt_max(idxfromloc(player.grid_V, player.current_location))
             measure_locations.append(measure_location)
@@ -244,14 +255,28 @@ def train(args):
     with open(save_file, 'w') as f:
         yaml.dump(params, f)
 
+def run_visualizer(shared_list, lock):
+    visu = Visulizer(shared_list, lock)
+    visu.run()
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
-    parser.add_argument("--param", default="GPwall_base_base")  # params
+    parser.add_argument("--param", default="real_base_base")  # params
     parser.add_argument("--env_idx", type=int, default=100)
     parser.add_argument("--generate", type=bool, default=True)
     parser.add_argument("--noise_sigma", type=float, default=0.01)
-    parser.add_argument("--iter", type=int, default=1000)
+    parser.add_argument("--iter", type=int, default=10)
     args = parser.parse_args()
-    train(args)
+    
+    shared_list = Manager().list([0, 1, 2])
+    lock = Lock()
+    pt = Process(target=train, args=(args, shared_list, lock))
+    pv = Process(target=run_visualizer, args=(shared_list, lock))
+    pt.start()
+    pv.start()
+    pt.join()
+    pv.join()
+
+    # train(args)
