@@ -21,9 +21,9 @@ from utils.environement import GridWorld
 
 # SCALEX = 1 / 1.7
 # SCALEY = 1 / 
-SIZEX = 960
-SIZEY = 600
-INITLOC = (700, 0)
+SIZEX = 1920
+SIZEY = 1080
+INITLOC = (0, 0)
 COLORS = ['o', 'y', 'blue']
 
 # def inverse_matrix(matrix):
@@ -85,10 +85,14 @@ class Visulizer(object):
         )
         save_path = env_load_path + "/" + env + "/"
         self.params = params
-        self.x_start = self.params["env"]["start"]["x"]  - 0.5 * self.params["env"]["step_size"]
-        self.x_end = self.x_start + self.params["env"]["step_size"] * (self.params["env"]["shape"]["x"] )
-        self.y_start = self.params["env"]["start"]["y"]  - 0.5 * self.params["env"]["step_size"]
-        self.y_end = self.y_start + self.params["env"]["step_size"] * (self.params["env"]["shape"]["y"] )
+        self.grid_size = self.params["env"]["step_size"]
+        self.x_start = self.params["env"]["start"]["x"]  - 0.5 * self.grid_size
+        self.x_end = self.x_start + self.grid_size * (self.params["env"]["shape"]["x"] )
+        self.y_start = self.params["env"]["start"]["y"]  - 0.5 * self.grid_size
+        self.y_end = self.y_start + self.grid_size * (self.params["env"]["shape"]["y"] )
+
+        self.x_center = (self.x_start + self.x_end) / 2
+        self.y_center = (self.y_start + self.y_end) / 2
 
         self.scalex = (self.x_end - self.x_start) / 2
         self.scaley = (self.y_end - self.y_start) / 2
@@ -133,7 +137,7 @@ class Visulizer(object):
         for i in range(n):
             glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, ord(str[i]))
 
-    def render(self, real_x=0, real_y=0, **kwargs):
+    def render(self,  **kwargs): # real_x=0, real_y=0,
         """render function.
 
         Args:
@@ -141,8 +145,8 @@ class Visulizer(object):
             real_y (float, optional): y of real-word center. Defaults to 0.
             scale (float, optional): scale from real-world to screen. Defaults to SCALE.
         """
-        LOC_X = - real_x * (1 / ((self.x_end - self.x_start) / 2))
-        LOC_Y = - real_y * (1 / ((self.y_end - self.y_start) / 2))
+        LOC_X = - self.x_center * (1 / ((self.x_end - self.x_start) / 2))
+        LOC_Y = - self.y_center * (1 / ((self.y_end - self.y_start) / 2))
         glClearColor(0.753, 0.753, 0.753, 1)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         # print(glMultMatrixf())
@@ -197,7 +201,8 @@ class Visulizer(object):
                 glVertex2f(center[0] + cos(angle) * radius, center[1] + sin(angle) * radius)
             glEnd()
 
-        def draw_coverage(idx, color='blue', grid_size=0.5):
+        def draw_coverage(idx, color='blue'):
+            grid_size = self.grid_size
             center = self.env.grid_V[idx]
             glBegin(GL_POLYGON)
             gl_color_helper(color)

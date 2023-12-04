@@ -1,0 +1,49 @@
+agent:
+  Cx_beta: 1.5
+  Cx_lengthscale: 2
+  Cx_noise: 0.007
+  Fx_beta: 2.0
+  Fx_lengthscale: 0.8
+  Fx_noise: 0.01
+  Lc: 1.5
+  Two_stage: false
+  cov_module: Sq_exp
+  explore_exploit_strategy: 1
+  mean_shift_val: 2
+  obs_model: disc_center
+  recommend: UCB
+  sol_domain: opti
+  use_goose: false
+algo:
+  eps_density_thresh: 0.5
+  goose_steps: 150
+  n_CI_samples: 1
+  n_iter: 200
+  use_doubling_trick: true
+common:
+  constraint: 0.3
+  dim: 2
+  disk_size: 1
+  epsilon: 0.25
+env:
+  Cx_beta: 1.5
+  Cx_lengthscale: 2
+  Cx_noise: 0.01
+  Fx_beta: 1.5
+  Fx_lengthscale: 0.3
+  Fx_noise: 0.01
+  cov_module: Sq_exp
+  env_file_name: env_data.pkl
+  generate: true
+  n_players: 3
+  shape:
+    x: 13
+    y: 10
+  start:
+    x: -3.4
+    y: -2.9
+  step_size: 0.2
+experiment:
+  folder: GP
+  generate_regret_plot: true
+  name: exploit

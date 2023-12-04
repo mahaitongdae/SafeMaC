@@ -235,7 +235,7 @@ def train(args, shared_locs, lock):
         regret += opt_coverage - current_coverage
         data.get('regret').append(regret)
         data.get('iter').append(iter)
-        print("Iter: {}, coverage value: {:.3f}".format(iter, current_coverage))
+        print("Iter: {}, coverage value: {:.3f}, regret: {:.3f}".format(iter, current_coverage))
 
     df = pd.DataFrame.from_dict(data)
     df['opt_coverage'] = opt_coverage
@@ -263,11 +263,11 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
-    parser.add_argument("--param", default="real_base_base")  # params
+    parser.add_argument("--param", default="real_base_double")  # params
     parser.add_argument("--env_idx", type=int, default=100)
     parser.add_argument("--generate", type=bool, default=True)
     parser.add_argument("--noise_sigma", type=float, default=0.01)
-    parser.add_argument("--iter", type=int, default=10)
+    parser.add_argument("--iter", type=int, default=100)
     args = parser.parse_args()
     
     shared_list = Manager().list([0, 1, 2])

@@ -1,15 +1,15 @@
 env:
   start: 
-    x: -2.0
-    y: -1.5
-  step_size: 0.5
+    x: -3.4
+    y: -2.9
+  step_size: 0.2
   shape:
-    x :  9
-    y :  7
+    x :  13
+    y :  10
   n_players : 3
   Cx_lengthscale : 2
   Cx_noise : 0.01
-  Fx_lengthscale : 0.7
+  Fx_lengthscale : 0.3
   Fx_noise : 0.01
   Cx_beta : 1.5 # only for visu
   Fx_beta : 1.5
