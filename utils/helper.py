@@ -360,13 +360,6 @@ def SafelyExplore(
     params,
     associate_dict,
     pessi_associate_dict,
-    iter,
-    visu,
-    init_safe,
-    env,
-    writer,
-    fig,
-    pt0,
     bool_IsGoalSafe,
 ):
     for agent_key in torch.arange(params["env"]["n_players"])[
@@ -380,32 +373,32 @@ def SafelyExplore(
         #     bool_IsGoalSafe[agent_key] = True
 
         reached_pt = players[agent_key].get_goose_goal(xi_star)
-        players[agent_key].update_current_location(reached_pt)
+        players[agent_key].set_goal(reached_pt)
         # xn_reached_dict["disc"][agent_key] = players[agent_key].disc_boundary
 
         # 3.1) Train and update after reaching the location
-        TrainAndUpdateConstraint(reached_pt, agent_key, players, params, env)
+        # TrainAndUpdateConstraint(reached_pt, agent_key, players, params, env)
 
         # 3.2) Update GP_0.01's of all the agents, has an effect on visu only
-        for player, safe in zip(players, init_safe["idx"]):
-            player.update_Cx_gp_with_current_data()
+        # for player, safe in zip(players, init_safe["idx"]):
+        #     player.update_Cx_gp_with_current_data()
 
         print("xn reached point", reached_pt)
         # TODO: Think if it make sense to update all agents all sets with the data already communicated
         # 3.3) Update Visualization
-        pt0 = UpdateSafeVisu(
-            agent_key,
-            players,
-            visu,
-            env,
-            writer,
-            associate_dict,
-            pessi_associate_dict,
-            fig,
-            pt0,
-        )
+        # pt0 = UpdateSafeVisu(
+        #     agent_key,
+        #     players,
+        #     visu,
+        #     env,
+        #     writer,
+        #     associate_dict,
+        #     pessi_associate_dict,
+        #     fig,
+        #     pt0,
+        # )
         # torch.all(torch.isclose(reached_pt, xi_star)):
-    return players, associate_dict, pessi_associate_dict, pt0
+    return players, associate_dict, pessi_associate_dict # , pt0
 
 
 def TrainAndUpdateConstraint(query_pt, agent_key, players, params, env):

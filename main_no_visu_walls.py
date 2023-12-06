@@ -13,7 +13,7 @@ import pandas as pd
 
 from utils.environement import GridWorld
 from utils.ground_truth import GroundTruth
-from utils.helper import submodular_optimization, idxfromloc
+from utils.helper import submodular_optimization, idxfromloc, SafelyExplore
 from utils.initializer import get_players_initialized
 
 
@@ -145,6 +145,22 @@ def train(args):
     associate_dict, pessi_associate_dict, acq_density, M_dist = submodular_optimization(
         players, init_safe, params
     )
+
+    if params["agent"]["use_goose"]:
+        bool_IsGoalSafe = torch.ones(params["env"]["n_players"]) < 0
+        bool_CannotReach = torch.ones(params["env"]["n_players"]) < 0
+        for agent_key in range(params["env"]["n_players"]):
+            Xg_idx = idxfromloc(
+                env.grid_V, players[agent_key].get_next_to_go_loc()
+            )
+            if Xg_idx in players[agent_key].pessimistic_graph.nodes:
+                bool_IsGoalSafe[agent_key] = True
+            elif Xg_idx not in players[agent_key].union_graph.nodes:
+                bool_CannotReach[agent_key] = True
+
+        SafelyExplore(players, params, associate_dict, pessi_associate_dict, bool_IsGoalSafe)
+
+
     '''
     haitong: in submodular_optimization, goal is set by agent.planned_dist_center & agent.planned_measured_loc.
                 we keep both for compatible with previous visualization code.
@@ -155,6 +171,7 @@ def train(args):
         acq_coverage = M_dist[i]
         player.safely_planning(acq_coverage)
 
+    max_density_sigma = 100.
     while iter < args.iter:
         '''
         haitong: main while loop.
@@ -214,6 +231,8 @@ def train(args):
                     players[i].Cx_model = Cx_model
                     players[i].safe_graph = players[0].safe_graph
                     players[i].safe_planning_graph = players[0].safe_planning_graph
+                    players[i].optimistic_graph = players[0].optimistic_graph
+                    players[i].pessimistic_graph = players[0].pessimistic_graph
 
                 # Greedy algorithm to get path planning target.
                 (
@@ -222,6 +241,42 @@ def train(args):
                     acq_density,
                     M_dist,
                 ) = submodular_optimization(players, init_safe, params)
+
+                # check if target disc is not uncertain enough
+                max_density_sigma = sum([player.get_max_density_sigma_at_loc(player.planned_measure_loc).max() for player in players])
+                bool_SafeUncertainPt = torch.ones(params["env"]["n_players"]) < 0
+                if (
+                        params["agent"]["use_goose"]
+                        and max_density_sigma < params["algo"]["eps_density_thresh"]
+                ):
+                    for agent_key in range(params["env"]["n_players"]):
+                        SafeUncertainInDisk = set.intersection(
+                            set(players[agent_key].full_disc_nodes),
+                            (
+                                    set(players[agent_key].optimistic_graph.nodes)
+                                    - set(players[agent_key].pessimistic_graph.nodes)
+                            ),
+                        )
+                        # SafeUncertainInDisk = set(players[agent_key].full_disc_nodes) - (
+                        #     set(players[agent_key].optimistic_graph.nodes) - set(players[agent_key].pessimistic_graph.nodes))
+                        if len(SafeUncertainInDisk) != 0:
+                            bool_SafeUncertainPt[agent_key] = True
+                            players[agent_key].set_goal_max_constraint_sigma_under_disc(
+                                list(SafeUncertainInDisk)
+                            )
+
+                # Safe explore to update the goal
+                bool_IsGoalSafe = torch.ones(params["env"]["n_players"]) < 0
+                bool_CannotReach = torch.ones(params["env"]["n_players"]) < 0
+                for agent_key in range(params["env"]["n_players"]):
+                    Xg_idx = idxfromloc(
+                        env.grid_V, players[agent_key].get_next_to_go_loc()
+                    )
+                    if Xg_idx in players[agent_key].pessimistic_graph.nodes:
+                        bool_IsGoalSafe[agent_key] = True
+                    elif Xg_idx not in players[agent_key].union_graph.nodes:
+                        bool_CannotReach[agent_key] = True
+                SafelyExplore(players, params, associate_dict, pessi_associate_dict, bool_IsGoalSafe)
 
                 # path planning.
                 path_len = []
@@ -289,10 +344,10 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     workspace = os.path.dirname(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="A foo that bars")
-    parser.add_argument("--param", default="GPwall_safe_base")  # params
+    parser.add_argument("--param", default="GPwall_safeb_double")  # params
     parser.add_argument("--env_idx", type=int, default=1)
-    parser.add_argument("--generate", type=bool, default=True)
-    parser.add_argument("--noise_sigma", type=float, default=0.01)
-    parser.add_argument("--iter", type=int, default=10)
+    parser.add_argument("--generate", type=bool, default=False)
+    parser.add_argument("--noise_sigma", type=float, default=0.1)
+    parser.add_argument("--iter", type=int, default=200)
     args = parser.parse_args()
     train(args)

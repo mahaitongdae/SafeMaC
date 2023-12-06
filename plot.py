@@ -3,13 +3,13 @@ import seaborn as sns
 import pandas as pd
 import os
 plt.rc('text', usetex=True)
-envs = ['GP_0.01','sparse_0.01','random_0.01'] # 'GP_0.01', # ,'sparse_0.1' # 'GP_0.001' 'GP_0.01',
+envs = ['random_0.01',] # 'GP_0.01', # ,'sparse_0.1' # 'GP_0.001' 'GP_0.01', 'GP_0.01', 'random_0.01'
 plot_labels = ['regret']
 plot_names = {'bandit': 'length scale 0.01', 'base': 'length scale 0.5'} #  'base': 'correlation kernel'
 env_names = {'GP': r'$w_{\rm Normal}$', 'random': r'$w_{\rm Uniform}$', 'sparse': r'$w_{\rm Sparse}$'}
-algo_names = {'double': 'ours', 'base': 'MacOpt-SP', 'voronoi': 'Voronoi'}
+algo_names = {'double': 'MAC-DT', 'base': 'MacOpt-SP', 'voronoi': 'Voronoi'}
 ylim = {'GP': [0, 1.7],
-        'random': [0, 2.6],
+        'random': [0, 1.5],
         'sparse': [0, 1.3]}
 # root_dir = os.path.dirname(os.path.abspath(__file__))
 # data_dir = os.path.join(root_dir, 'experiments')

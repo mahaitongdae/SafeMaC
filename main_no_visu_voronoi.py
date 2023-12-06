@@ -182,31 +182,52 @@ def train(args):
                 print('planning target')
                 node_idxs = [idxfromloc(p.grid_V, p.current_location) for p in players]
                 graph = players[0].base_graph
-                voronoi_partition = nx.voronoi_cells(graph, node_idxs)
-                acq_density = players[0].Fx_model.posterior(players[0].grid_V).mvn.mean
-                # acq_density = acq_density -
-                # TODO: might rescale it to handle coverage formulation issue?
-                partition_pair = np.random.choice(np.linspace(0, 2, 3), size=(3), replace=False).astype(int)
-                # partition_pair = int(partition_pair)
-                union_partitions = set(voronoi_partition[node_idxs[partition_pair[0]]]) | set(voronoi_partition[node_idxs[partition_pair[1]]])
-                subgraph = graph.subgraph(union_partitions)
+                center_of_masses = []
+                for i in range(10): # voronoi iteration, to be tuned
+                    voronoi_partitions = nx.voronoi_cells(graph, node_idxs) # , weight=lambda u ,v, d: 1 if v in node_idxs else 0
+                    if i == 0:
+                        old_voronoi_centers = list(voronoi_partitions.keys())
+                    else:
+                        old_voronoi_centers = center_of_masses
 
-                # find partition target
+                    acq_density = players[0].Fx_model.posterior(players[0].grid_V).mvn.mean.detach().numpy()
+                    acq_density = acq_density - acq_density.min()
 
-                partition_loss = 1e6
-                for node_a in subgraph.nodes:
-                    for node_b in subgraph.nodes:
-                        loss = 0.
-                        for node in subgraph.nodes:
-                            loss += acq_density[node] * min(len(nx.shortest_path(subgraph, source=node, target=node_a)),
-                                                            len(nx.shortest_path(subgraph, source=node, target=node_b)))
-                        if loss < partition_loss:
-                            partition_loss = loss
-                            target_a = node_a
-                            target_b = node_b
-                players[partition_pair[0]].set_goal(players[partition_pair[0]].grid_V[target_a])
-                players[partition_pair[1]].set_goal(players[partition_pair[1]].grid_V[target_b])
-                players[partition_pair[2]].set_goal(players[partition_pair[2]].current_location)
+                    for voronoi_center, voronoi_partition in voronoi_partitions.items():
+                        subgraph = graph.subgraph(voronoi_partition)
+                        center_of_mass = nx.center(subgraph, weight=
+                        lambda u ,v, d: acq_density[u] + acq_density[v] if (v == voronoi_center or u == voronoi_center) else 0.01)
+                        center_of_masses.append(center_of_mass[0])
+                    if sorted(center_of_masses) == sorted(old_voronoi_centers):
+                        print('find voronoi partition at iter {}'.format(i + 1))
+                        break
+
+                    # OLD VORONOI IMPLEMENTATION
+                    # # acq_density = acq_density -
+                    # # TODO: might rescale it to handle coverage formulation issue?
+                    # partition_pair = np.random.choice(np.linspace(0, 2, 3), size=(3), replace=False).astype(int)
+                    # # partition_pair = int(partition_pair)
+                    # union_partitions = set(voronoi_partition[node_idxs[partition_pair[0]]]) | set(voronoi_partition[node_idxs[partition_pair[1]]])
+                    # subgraph = graph.subgraph(union_partitions)
+                    #
+                    # # find partition target
+                    #
+                    # partition_loss = 1e6
+                    # for node_a in subgraph.nodes:
+                    #     for node_b in subgraph.nodes:
+                    #         loss = 0.
+                    #         for node in subgraph.nodes:
+                    #             loss += acq_density[node] * min(len(nx.shortest_path(subgraph, source=node, target=node_a)),
+                    #                                             len(nx.shortest_path(subgraph, source=node, target=node_b)))
+                    #         if loss < partition_loss:
+                    #             partition_loss = loss
+                    #             target_a = node_a
+                    #             target_b = node_b
+
+                    # NEW VORONOI IMPLEMENTATION
+
+                for i, player in enumerate(players):
+                    player.set_goal(player.grid_V[center_of_masses[i]])
 
                 # path planning.
                 path_len = []
@@ -290,6 +311,6 @@ if __name__ == '__main__':
     parser.add_argument("--env_idx", type=int, default=100)
     parser.add_argument("--generate", type=bool, default=False)
     parser.add_argument("--noise_sigma", type=float, default=0.01)
-    parser.add_argument("--iter", type=int, default=10)
+    parser.add_argument("--iter", type=int, default=100)
     args = parser.parse_args()
     train(args)

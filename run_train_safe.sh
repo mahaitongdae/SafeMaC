@@ -1,7 +1,7 @@
 for noise in 0.1; do 
-  for param in GPwall_safeb_base
+  for param in GPwall_safed_double
   do
-    for i in {1..10}
+    for i in {2..9}
     do
       # if [ $param = sparse_bandit_double ]
       # then

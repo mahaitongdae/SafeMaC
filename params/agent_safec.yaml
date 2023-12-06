@@ -8,13 +8,13 @@ agent:
   Cx_beta : 1.5 # 1.5
   Fx_beta : 2.0 #1.5
   mean_shift_val : 2
-  use_goose: False
+  use_goose: True
   obs_model : "disc_center"   # disc_center, full_disc, 2 disc_max_pt uncertainity, Bernoulli
   cov_module: 'Sq_exp'     #'Matern', Sq_exp
   recommend: 'UCB'   # 'UCB', 'LCB' 
   Two_stage: False
   sol_domain: "opti"  # keep 2 stage as false
-  boundary_explore: False
+  boundary_explore: True
 
 common:
   dim : 2

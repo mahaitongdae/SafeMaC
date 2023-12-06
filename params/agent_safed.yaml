@@ -14,7 +14,7 @@ agent:
   recommend: 'UCB'   # 'UCB', 'LCB' 
   Two_stage: False
   sol_domain: "opti"  # keep 2 stage as false
-  boundary_explore: False
+  boundary_explore: True
 
 common:
   dim : 2

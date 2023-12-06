@@ -155,64 +155,50 @@ def train(args):
         current_locations = []
         measure_locations = []
         for i, player in enumerate(players):
-            target_reached.append(player.update_current_location())
+            # target_reached.append()
+            player.update_current_location()
             current_locations.append(player.current_location)
             measure_location = player.get_measurement_pt_max(idxfromloc(player.grid_V, player.current_location))
             measure_locations.append(measure_location)
             data['idx_agent{}'.format(i)].append(idxfromloc(player.grid_V, player.current_location))
             data['idx_measure{}'.format(i)].append(idxfromloc(player.grid_V, measure_location))
 
-        # observation
-        # current_locations = torch.from_numpy(np.array(current_locations))
-
         obs = env.get_multi_density_observation(measure_locations)
         players[0].update_Fx_set(torch.stack(measure_locations), torch.cat(obs))
         # haitong: wierd data dim from previous code.
         # haitong: Centralized algo currently, so we only add to first agent then sync the FX model.
 
+        if iter >= doubling_target_iter and params["algo"]["use_doubling_trick"]:
+            # if finish doubling trick this time, update GP_0.01 and do planning.
+            Fx_model = players[0].update_Fx()
+            for i in range(1, len(players)):
+                players[i].Fx_model = Fx_model  # sync all Fx model.
 
-        if all(target_reached):
-            # if params["algo"]["use_doubling_trick"] and iter > doubling_target_iter:
+            # Greedy algorithm to get path planning target.
+            (
+                associate_dict,
+                pessi_associate_dict,
+                acq_density,
+                M_dist,
+            ) = submodular_optimization(players, init_safe, params)
 
-                # # only recal doubling trick if finished doubling trick last time
-                # current_samples = []
-                # for i, player in enumerate(players):
-                #     current_samples.append(data['idx_agent{}'.format(i)].count(idxfromloc(player.grid_V, player.current_location)))
-                # min_samples = min(current_samples)
-                # doubling_target_iter = iter + min_samples
-                # print('double until iter {}'.format(doubling_target_iter))
+            # path planning.
+            path_len = []
+            for player in players:
+                acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
+                acq_coverage = acq_coverage - acq_coverage.min() # to handle negative edge weights in planning.
+                player.planning(acq_coverage)
+                path_len.append(len(player.path))
+            print('max path len {}'.format(max(path_len)))
 
-            if iter >= doubling_target_iter or (not params["algo"]["use_doubling_trick"]):
-                # if finish doubling trick this time, update GP_0.01 and do planning.
-                Fx_model = players[0].update_Fx()
-                for i in range(1, len(players)):
-                    players[i].Fx_model = Fx_model  # sync all Fx model.
-
-                # Greedy algorithm to get path planning target.
-                (
-                    associate_dict,
-                    pessi_associate_dict,
-                    acq_density,
-                    M_dist,
-                ) = submodular_optimization(players, init_safe, params)
-
-                # path planning.
-                path_len = []
-                for player in players:
-                    acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
-                    acq_coverage = acq_coverage - acq_coverage.min() # to handle negative edge weights in planning.
-                    player.planning(acq_coverage)
-                    path_len.append(len(player.path))
-                print('max path len {}'.format(max(path_len)))
-
-                # compute target doubling trick iter.
-                planned_target_samples = []
-                for i, player in enumerate(players):
-                    planned_target_samples.append(
-                        data['idx_agent{}'.format(i)].count(idxfromloc(player.grid_V, player.planned_disk_center)))
-                min_samples = min(planned_target_samples)
-                doubling_target_iter = iter + min_samples
-                print('double until iter {}'.format(doubling_target_iter))
+            # compute target doubling trick iter.
+            planned_target_samples = []
+            for i, player in enumerate(players):
+                planned_target_samples.append(
+                    data['idx_agent{}'.format(i)].count(idxfromloc(player.grid_V, player.planned_disk_center)))
+            min_samples = min(planned_target_samples)
+            doubling_target_iter = iter + min_samples
+            print('double until iter {}'.format(doubling_target_iter))
 
         iter += 1
         # max_density_sigma = sum(
@@ -249,7 +235,8 @@ def train(args):
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
-    workspace = os.path.dirname(os.path.abspath(__file__))
+    # workspace = os.path.dirname(os.path.abspath(__file__))
+    workspace = '/home/mht/PycharmProjects/safemac_data'
     parser = argparse.ArgumentParser(description="A foo that bars")
     parser.add_argument("--param", default="GPwall_base_base")  # params
     parser.add_argument("--env_idx", type=int, default=100)

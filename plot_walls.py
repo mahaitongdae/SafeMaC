@@ -4,10 +4,15 @@ import pandas as pd
 import os
 plt.rc('text', usetex=True)
 envs = ['GPwall_0.1'] # 'GP_0.01', # ,'sparse_0.1' # 'GP_0.001' 'GP_0.01',
-plot_labels = ['regret']
-plot_names = {'bandit': 'length scale 0.01', 'base': 'length scale 0.5'} #  'base': 'correlation kernel'
-env_names = {'GP': r'$w_{\rm Normal}$', 'random': r'$w_{\rm Uniform}$', 'sparse': r'$w_{\rm Sparse}$'}
-algo_names = {'double': 'ours', 'base': 'MacOpt-SP', 'voronoi': 'Voronoi'}
+plot_labels = ['regret'] # 'instant_regret', 'regret', 'current_coverage'
+# plot_names = {'bandit': 'length scale 0.01', 'base': 'length scale 0.5'} #  'base': 'correlation kernel'
+# env_names = {'GP': r'$w_{\rm Normal}$', 'random': r'$w_{\rm Uniform}$', 'sparse': r'$w_{\rm Sparse}$'}
+algo_names = {
+              # 'GPwall_safe_base': 'PassiveSafe',
+              'GPwall_safe_double': 'SafeOpt-SP',
+              'GPwall_safeb_base': 'SafeMac-SP',
+              'GPwall_safeb_double': 'SafeMac-DT',
+              'GPwall_safec_double': 'SafePlanMaC'}
 ylim = {'GP': [0, 1700],
         'random': [0, 2600],
         'sparse': [0, 1300]}
@@ -15,7 +20,7 @@ ylim = {'GP': [0, 1700],
 # data_dir = os.path.join(root_dir, 'experiments')
 data_dir = '/home/mht/PycharmProjects/SafeMaC/experiments'
 sns.set_style('darkgrid',)
-sns.set(font_scale=1.5)
+sns.set(font_scale=1.1)
 def plot():
     # for plot_key, plot_val in plot_names.items():
     for env in envs: #
@@ -33,10 +38,10 @@ def plot():
                     continue
                 if os.listdir(os.path.join(os.path.join(env_dir, sub_env), algo)) == []:
                     continue
-                if 'safe' in algo:
+                if algo in algo_names.keys():
                     df = pd.read_csv(os.path.join(os.path.join(os.path.join(env_dir, sub_env), algo), 'data.csv'))
-                    df['objective'] = algo
-                    df['value'] = df['regret'] # / 1000.
+                    df['Algorithm'] = algo_names[algo]
+                    df['regret'] = df['regret']  / 1000.
                     dfs.append(df)
                     # df2 = pd.read_csv(os.path.join(os.path.join(os.path.join(env_dir, sub_env), algo), 'data.csv'))
                     # df2['objective'] = 'violation counts'
@@ -46,20 +51,21 @@ def plot():
                 #     pass
         total_df = pd.concat(dfs, ignore_index=True)
         for label in plot_labels:
-            fig, ax = plt.subplots(figsize=[10, 10])
+            fig, ax = plt.subplots(figsize=[4, 3])
             sns.set_style('darkgrid')
             # sns.set(font_scale=1.)
-            sns.lineplot(x='iter', y='value', hue='objective', data=total_df, ax=ax)
+            sns.lineplot(x='iter', y=label, hue='Algorithm', data=total_df, ax=ax)
             # title = env_names[env.split('_')[0]] + ', ' + plot_val
             # ax.set_title(title)
             ax.set_xlabel('Samples')
-            ax.set_ylabel(r'Regret ($\times 10^3$)')
+            # ax.set_ylabel(r'Regret ($\times 10^3$)')
+            ax.set_ylabel('Constraint Violations')
             if label == 'instant_regret':
                 # plt.yscale('log')
                 plt.gca().invert_yaxis()
             ax.set_ylim(ylim.get(env.split('_')[0]))
-            plt.tight_layout(pad=0.3)
-            # plt.xlim(0, 500)
+            plt.tight_layout(pad=0.1)
+            plt.xlim(0, 200)
             h, l = ax.get_legend_handles_labels()
             # ax.get_legend().remove()
             fig_name = env + '_' + label + '_' + '_paper.pdf'

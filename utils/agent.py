@@ -157,7 +157,9 @@ class Agent(object):
         path = nx.dijkstra_path(self.action_graph,
                                 idxfromloc(self.grid_V, self.current_location),
                                 idxfromloc(self.grid_V, target),
-                                lambda u, v, d: node_reward[v])
+                                # lambda u, v, d: node_reward[v]
+                                lambda  u, v, d: 1.,
+                                )
         self.path = path[1:]
 
     def shortest_path_planning(self):
@@ -449,39 +451,44 @@ class Agent(object):
         self.planned_measure_loc = xi_star
         self.planned_disk_center = xi_star
 
+    def get_max_density_sigma_at_loc(self, loc):
+        disc = self.get_expected_disc(idxfromloc(self.grid_V, loc))
+        w, _ = self.get_max_sigma_under_disc(disc)
+        return w
+
     def get_next_to_go_loc(self):
-        if not self.agent_param["Two_stage"]:
-            return self.planned_measure_loc
-        else:
-            if self.max_constraint_sigma_goal == None:
-                PtsToexp = list(
-                    set(self.optimistic_graph.nodes) -
-                    set(self.pessimistic_graph.nodes)
-                )
-                self.max_constraint_goal_idx = (
-                    self.set_goal_max_constraint_sigma_under_disc(PtsToexp)
-                )
-                return self.max_constraint_sigma_goal
-            else:
-                PtsToexp = list(
-                    set(self.optimistic_graph.nodes) -
-                    set(self.pessimistic_graph.nodes)
-                )
-                if self.max_constraint_goal_idx in PtsToexp:
-                    return self.max_constraint_sigma_goal
-                else:
-                    PtsToexp = list(
-                        set(self.optimistic_graph.nodes)
-                        - set(self.pessimistic_graph.nodes)
-                    )
-                    if len(PtsToexp) == 0:  # fully explored
-                        return self.planned_measure_loc
-                    else:
-                        self.max_constraint_goal_idx = (
-                            self.set_goal_max_constraint_sigma_under_disc(
-                                PtsToexp)
-                        )
-                        return self.max_constraint_sigma_goal
+        # if not self.agent_param["Two_stage"]:
+        return self.planned_measure_loc
+        # else:
+        #     if self.max_constraint_sigma_goal == None:
+        #         PtsToexp = list(
+        #             set(self.optimistic_graph.nodes) -
+        #             set(self.pessimistic_graph.nodes)
+        #         )
+        #         self.max_constraint_goal_idx = (
+        #             self.set_goal_max_constraint_sigma_under_disc(PtsToexp)
+        #         )
+        #         return self.max_constraint_sigma_goal
+        #     else:
+        #         PtsToexp = list(
+        #             set(self.optimistic_graph.nodes) -
+        #             set(self.pessimistic_graph.nodes)
+        #         )
+        #         if self.max_constraint_goal_idx in PtsToexp:
+        #             return self.max_constraint_sigma_goal
+        #         else:
+        #             PtsToexp = list(
+        #                 set(self.optimistic_graph.nodes)
+        #                 - set(self.pessimistic_graph.nodes)
+        #             )
+        #             if len(PtsToexp) == 0:  # fully explored
+        #                 return self.planned_measure_loc
+        #             else:
+        #                 self.max_constraint_goal_idx = (
+        #                     self.set_goal_max_constraint_sigma_under_disc(
+        #                         PtsToexp)
+        #                 )
+        #                 return self.max_constraint_sigma_goal
 
     def update_next_to_go_loc(self, loc):
         self.planned_measure_loc = loc
@@ -624,6 +631,7 @@ class Agent(object):
         w = upper - lower
         idx = w.argmax().item()
         self.max_constraint_sigma_goal = self.grid_V[disc_nodes][idx]
+        self.set_goal(disc_nodes[idx])
         return disc_nodes[idx]
 
     def get_max_uncertain_under_disc(self, loc_idx):
@@ -820,19 +828,24 @@ class Agent(object):
         # acq_density = self.Fx_model.posterior(
         #     self.grid_V).sample().reshape(-1) + self.mean_shift_val
         # 2.2) Use greedy algorithm to get new index to visit
-        if self.agent_param["recommend"] == "Fcov_UCB":  # acq is mean
-            idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti_cov(
-                acq_density.clone(), self.base_graph, n_soln, self.disk_size, mat
-            )
-        elif self.agent_param["recommend"] == "Hallucinate":
-            idx_x_curr, dist_gain, opt_Fx_obj = self.hallucination(
-                acq_density.clone(), n_soln
+        if self.use_goose:
+            idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti(
+                acq_density.clone(), self.union_graph, n_soln, self.disk_size
             )
         else:
-            idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti(
-                acq_density.clone(), self.safe_graph, n_soln, self.disk_size
-            )
-            # Haitong notes: change self.base_graph to salf.safe_graph here.
+            if self.agent_param["recommend"] == "Fcov_UCB":  # acq is mean
+                idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti_cov(
+                    acq_density.clone(), self.base_graph, n_soln, self.disk_size, mat
+                )
+            elif self.agent_param["recommend"] == "Hallucinate":
+                idx_x_curr, dist_gain, opt_Fx_obj = self.hallucination(
+                    acq_density.clone(), n_soln
+                )
+            else:
+                idx_x_curr, dist_gain, opt_Fx_obj = greedy_algorithm_opti(
+                    acq_density.clone(), self.safe_graph, n_soln, self.disk_size
+                )
+                # Haitong notes: change self.base_graph to salf.safe_graph here.
 
         return self.grid_V[idx_x_curr], acq_density, dist_gain, opt_Fx_obj.detach()
 

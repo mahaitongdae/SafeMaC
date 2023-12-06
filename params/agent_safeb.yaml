@@ -1,5 +1,5 @@
 agent:
-  Lc : 1.5
+  Lc : 0.5
   explore_exploit_strategy : 1 # 0: Bernaulli, 1: Directly maximizing coverage obj, 2: 2 stage
   Cx_lengthscale : 2
   Cx_noise : 0.007
@@ -14,7 +14,7 @@ agent:
   recommend: 'UCB'   # 'UCB', 'LCB' 
   Two_stage: False
   sol_domain: "opti"  # keep 2 stage as false
-  boundary_explore: True
+  boundary_explore: False
 
 common:
   dim : 2
