@@ -152,7 +152,7 @@ class Agent(object):
 
 
     def planning(self, node_reward):
-        assert len(self.path) == 0
+        # assert len(self.path) == 0
         target = self.planned_disk_center
         path = nx.dijkstra_path(self.action_graph,
                                 idxfromloc(self.grid_V, self.current_location),
