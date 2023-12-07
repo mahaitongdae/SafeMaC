@@ -1,5 +1,6 @@
 # The environment for this file is a ~/work/rl
 import argparse
+import copy
 import errno
 import os
 import pickle
@@ -15,6 +16,7 @@ import pandas as pd
 
 import sys
 sys.path.append(os.path.dirname(__file__))
+import networkx as nx
 
 from utils.environement import GridWorld
 from utils.ground_truth import GroundTruth
@@ -99,14 +101,23 @@ def train(args, shared_locs, lock):
     train["Fx_X"] = init_safe["loc"]
     train["Fx_Y"] = env.get_multi_density_observation(train["Fx_X"])
     players = get_players_initialized(train, params, grid_V)
+    env_graph = copy.deepcopy(players[0].base_graph)
+    nx.set_node_attributes(env_graph, 0, 'visit_count')
+
+    # get initial visit count
+    visit_count_last_ep = nx.get_node_attributes(env_graph, 'visit_count')
 
     for it, player in enumerate(players):
         player.update_Fx_gp_with_current_data()
         player.update_graph(init_safe["idx"][it])
         player.save_posterior_normalization_const()  # agent.posterior_normalization_const, max of 2beta*sigma.
         player.initialize_location(init_safe["loc"][it])
-        data['idx_agent{}'.format(it)].append(idxfromloc(player.grid_V, player.current_location))
-        data['idx_measure{}'.format(it)].append(idxfromloc(player.grid_V, player.current_location))
+        current_loc_idx = idxfromloc(player.grid_V, player.current_location)
+        data['idx_agent{}'.format(it)].append(current_loc_idx)
+        data['idx_measure{}'.format(it)].append(current_loc_idx)
+        env_graph.nodes[current_loc_idx]["visit_count"] += 1
+        # haitong: will not do measurement on the initialization. Use current for in-place.
+        # measure_loc = player.get_measurement_pt_max(idxfromloc(player.grid_V, player.current_location))
 
 
     associate_dict = {}
@@ -119,9 +130,7 @@ def train(args, shared_locs, lock):
     for idx in range(params["env"]["n_players"]):
         pessi_associate_dict[0].append(idx)
 
-    iter = 0
-    doubling_target_iter = 0
-
+    main_iter = 0
     regret = 0.
     # compute coverage based on the initial location
     current_coverage = opt.compute_current_multiple_coverage(players, associate_dict)
@@ -131,9 +140,6 @@ def train(args, shared_locs, lock):
     regret += opt_coverage - current_coverage
     data.get('regret').append(regret)
 
-    # max_density_sigma = sum([player.get_max_sigma() for player in players]) # sigma is for objective Fx
-    # data.get('sum_max_sigma').append(max_density_sigma)
-    # print(iter, max_density_sigma)
 
     # 4) Solve the submodular problem and get a next point to go xi* in pessimistic safe set
     associate_dict, pessi_associate_dict, acq_density, M_dist = submodular_optimization(
@@ -148,7 +154,7 @@ def train(args, shared_locs, lock):
         # player.planning(acq_coverage)
         player.shortest_path_planning()
 
-    while iter < args.iter:
+    while main_iter < args.iter:
         '''
         haitong: main while loop.
         '''
@@ -167,75 +173,65 @@ def train(args, shared_locs, lock):
             current_locations.append(player.current_location)
             measure_location = player.get_measurement_pt_max(idxfromloc(player.grid_V, player.current_location))
             measure_locations.append(measure_location)
-            data['idx_agent{}'.format(i)].append(idxfromloc(player.grid_V, player.current_location))
+            current_loc_idx = idxfromloc(player.grid_V, player.current_location)
+            data['idx_agent{}'.format(i)].append(current_loc_idx)
             data['idx_measure{}'.format(i)].append(idxfromloc(player.grid_V, measure_location))
-
-        # observation
-        # current_locations = torch.from_numpy(np.array(current_locations))
+            env_graph.nodes[current_loc_idx]['visit_count'] += 1
 
         obs = env.get_multi_density_observation(measure_locations)
         players[0].update_Fx_set(torch.stack(measure_locations), torch.cat(obs))
         # haitong: wierd data dim from previous code.
         # haitong: Centralized algo currently, so we only add to first agent then sync the FX model.
 
+        replan = False
+        # doubling trick condition:
+        if params["algo"]["use_doubling_trick"]:
+            visit_count_current = nx.get_node_attributes(env_graph, 'visit_count')
+            for key in visit_count_current.keys():
+                if visit_count_current[key] >= max(2*visit_count_last_ep[key], 1):
+                    print('replan index {}, previous ep {}, current {}'.format(key, visit_count_last_ep[key], visit_count_current[key]))
+                    replan = True
+                    break
+        elif not params["algo"]["use_doubling_trick"]:
+            replan = all(target_reached) # for baseline, replan until target reached.
+        else:
+            raise NotImplementedError
 
-        if all(target_reached):
-            # if params["algo"]["use_doubling_trick"] and iter > doubling_target_iter:
 
-                # # only recal doubling trick if finished doubling trick last time
-                # current_samples = []
-                # for i, player in enumerate(players):
-                #     current_samples.append(data['idx_agent{}'.format(i)].count(idxfromloc(player.grid_V, player.current_location)))
-                # min_samples = min(current_samples)
-                # doubling_target_iter = iter + min_samples
-                # print('double until iter {}'.format(doubling_target_iter))
+        if replan:
+            # if finish doubling trick this time, update GP_0.01 and do planning.
+            Fx_model = players[0].update_Fx()
+            for i in range(1, len(players)):
+                players[i].Fx_model = Fx_model  # sync all Fx model.
 
-            if iter >= doubling_target_iter or (not params["algo"]["use_doubling_trick"]):
-                # if finish doubling trick this time, update GP_0.01 and do planning.
-                Fx_model = players[0].update_Fx()
-                for i in range(1, len(players)):
-                    players[i].Fx_model = Fx_model  # sync all Fx model.
+            # Greedy algorithm to get path planning target.
+            (
+                associate_dict,
+                pessi_associate_dict,
+                acq_density,
+                M_dist,
+            ) = submodular_optimization(players, init_safe, params)
 
-                # Greedy algorithm to get path planning target.
-                (
-                    associate_dict,
-                    pessi_associate_dict,
-                    acq_density,
-                    M_dist,
-                ) = submodular_optimization(players, init_safe, params)
+            # path planning.
+            path_len = []
+            for player in players:
+                acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
+                acq_coverage = acq_coverage - acq_coverage.min() # to handle negative edge weights in planning.
+                player.planning(acq_coverage)
+                path_len.append(len(player.path))
+            print('max path len {}'.format(max(path_len)))
 
-                # path planning.
-                path_len = []
-                for player in players:
-                    acq_coverage = torch.stack(list(M_dist[0].values())).detach().numpy()
-                    acq_coverage = acq_coverage - acq_coverage.min() # to handle negative edge weights in planning.
-                    player.planning(acq_coverage)
-                    path_len.append(len(player.path))
-                print('max path len {}'.format(max(path_len)))
+            visit_count_last_ep = nx.get_node_attributes(env_graph, 'visit_count')
 
-                # compute target doubling trick iter.
-                planned_target_samples = []
-                for i, player in enumerate(players):
-                    planned_target_samples.append(
-                        data['idx_agent{}'.format(i)].count(idxfromloc(player.grid_V, player.planned_disk_center)))
-                min_samples = min(planned_target_samples)
-                doubling_target_iter = iter + min_samples
-                print('double until iter {}'.format(doubling_target_iter))
-
-        iter += 1
-        # max_density_sigma = sum(
-        #     [player.max_density_sigma for player in players]
-        # )
-        # data.get('sum_max_sigma').append(max_density_sigma)
-        # print(iter, max_density_sigma)
+        main_iter += 1
 
         current_coverage = opt.compute_current_multiple_coverage(players, associate_dict)
         data.get('current_coverage').append(current_coverage)
         data.get('instant_regret').append(opt_coverage - current_coverage)
         regret += opt_coverage - current_coverage
         data.get('regret').append(regret)
-        data.get('iter').append(iter)
-        print("Iter: {}, coverage value: {:.3f}, regret: {:.3f}".format(iter, current_coverage))
+        data.get('iter').append(main_iter)
+        print("Iter: {}, coverage value: {:.3f}".format(main_iter, current_coverage))
 
     df = pd.DataFrame.from_dict(data)
     df['opt_coverage'] = opt_coverage
@@ -265,9 +261,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A foo that bars")
     parser.add_argument("--param", default="real_base_double")  # params
     parser.add_argument("--env_idx", type=int, default=100)
-    parser.add_argument("--generate", type=bool, default=True)
+    parser.add_argument("--generate", action='store_true')
     parser.add_argument("--noise_sigma", type=float, default=0.01)
-    parser.add_argument("--iter", type=int, default=100)
+    parser.add_argument("--iter", type=int, default=200)
+    parser.set_defaults(generate=False)
     args = parser.parse_args()
     
     shared_list = Manager().list([0, 1, 2])
