@@ -13,8 +13,9 @@ from gpytorch.kernels import (LinearKernel, MaternKernel,
                               PiecewisePolynomialKernel, PolynomialKernel,
                               RBFKernel, ScaleKernel)
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-# import sys
+import sys
 # print(sys.path)
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from openweathermap.KGS_environment import (GridFunction, get_gorillas_density,
                                             get_jungle_weather)
 
@@ -37,7 +38,7 @@ class GridWorld:
         self.Cx_noise = env_params["Cx_noise"]
         self.n_players = env_params["n_players"]
         self.grid_V = grid(
-            env_params["shape"], env_params["step_size"], env_params["start"]
+            env_params["shape"], env_params["step_size"], torch.tensor([env_params["start"]["x"], env_params["start"]["y"]])
         )
         if env_params["cov_module"] == "Sq_exp":
             self.Cx_covar_module = ScaleKernel(
@@ -467,10 +468,10 @@ class GridWorld:
         # for init_pt in self.__init_safe["loc"]:
         #     ax.plot(init_pt[0], init_pt[1], "*", color="red", mew=2)
         # ax.clabel(CS2, CS2.levels, inline=True, fmt=fmt, fontsize=10)
-        ax.yaxis.set_ticklabels([])
-        ax.yaxis.set_ticks([])
-        ax.xaxis.set_ticklabels([])
-        ax.xaxis.set_ticks([])
+        # ax.yaxis.set_ticklabels([])
+        # ax.yaxis.set_ticks([])
+        # ax.xaxis.set_ticklabels([])
+        # ax.xaxis.set_ticks([])
         # plt.axis("equal")
         # plt.axis('off')
         plt.tick_params(
@@ -837,11 +838,11 @@ def dist(a, b):
 
 
 if __name__ == "__main__":
-    workspace = "SafeMaC"
-    with open(workspace + "/params/smcc_SafeMac_LA3D40gorilla.yaml") as file:
+    workspace = "/home/mht/PycharmProjects/mac_decision/src/SafeMaC"
+    with open(workspace + "/params/env_real.yaml") as file:
         params = yaml.load(file, Loader=yaml.FullLoader)
     if params["env"]["generate"]:
-        for i in range(0, 10):
+        for i in range(0, 1):
             # save_path = workspace + "/experiments/" + datetime.today().strftime('%d-%m-%y') + \
             #     datetime.today().strftime(
             #         '-%A')[0:4] + "/environments/env_" + str(i) + "/"

@@ -1,0 +1,29 @@
+env:
+  start: 
+    x: -3.4
+    y: -2.9
+  step_size: 0.2
+  shape:
+    x :  13
+    y :  10
+  n_players : 3
+  Cx_lengthscale : 2
+  Cx_noise : 0.01
+  Fx_lengthscale : 0.3
+  Fx_noise : 0.01
+  Cx_beta : 1.5 # only for visu
+  Fx_beta : 1.5
+  generate: True   # True, False, walls, None: use some fixed save path
+  env_file_name: 'env_data.pkl'
+  cov_module: 'Sq_exp'     #'Matern', Sq_exp, 'Poly'
+
+experiment:
+  name: "exploit" # "Bernoulli", "2stage"
+  generate_regret_plot : True
+  folder: "GP"
+
+common:
+  dim : 2
+  constraint : 0.3
+  epsilon : 0.25
+  disk_size : 1
